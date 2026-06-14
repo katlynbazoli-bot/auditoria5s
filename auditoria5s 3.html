@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1D9E75">
+<title>Auditoria 5S</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f3;color:#1a1a1a;font-size:15px}
+.screen{display:none;min-height:100vh}
+.screen.active{display:block}
+#s-login{background:linear-gradient(160deg,#1D9E75,#0d7a5a);display:flex;flex-direction:column;justify-content:center}
+#s-login.active{display:flex}
+#s-loading{background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem}
+#s-loading.active{display:flex}
+.hdr{background:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #e8e8e8;position:sticky;top:0;z-index:10;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.hdr-title{font-size:16px;font-weight:700;flex:1}
+.back-btn{background:none;border:none;cursor:pointer;color:#555;font-size:22px;padding:4px 8px;border-radius:8px;line-height:1}
+.back-btn:active{background:#f0f0f0}
+.icon-btn{background:none;border:none;cursor:pointer;color:#555;font-size:14px;padding:7px 12px;border-radius:8px;border:1px solid #e0e0e0;font-family:inherit}
+.page{padding:16px}
+.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.card-title{font-size:12px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px}
+.btn{width:100%;padding:14px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:opacity .15s}
+.btn:active{opacity:.8}
+.btn-primary{background:#1D9E75;color:#fff}
+.btn-secondary{background:#fff;color:#333;border:1.5px solid #ddd}
+.btn-danger{background:#FFF1F2;color:#C0152A;border:1.5px solid #FCA5A5}
+.btn-sm{width:auto;padding:8px 16px;font-size:13px;border-radius:10px}
+.lbl{font-size:13px;color:#666;margin-bottom:5px;display:block;font-weight:500}
+.inp{width:100%;padding:13px 14px;border:1.5px solid #e0e0e0;border-radius:11px;font-size:15px;background:#fff;color:#1a1a1a;font-family:inherit;margin-bottom:12px;transition:border-color .2s}
+.inp:focus{outline:none;border-color:#1D9E75}
+select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;cursor:pointer}
+textarea.inp{resize:vertical;min-height:72px}
+.login-box{background:#fff;margin:24px;border-radius:22px;padding:32px 24px;box-shadow:0 8px 32px rgba(0,0,0,.15)}
+.login-icon{width:68px;height:68px;background:#E1F5EE;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:30px}
+.login-title{font-size:24px;font-weight:800;text-align:center;margin-bottom:4px}
+.login-sub{font-size:13px;color:#999;text-align:center;margin-bottom:28px}
+.err-box{font-size:13px;color:#C0152A;padding:10px 13px;background:#FFF1F2;border-radius:9px;margin-bottom:12px;display:none;border:1px solid #FCA5A5}
+.hint{font-size:12px;color:#bbb;text-align:center;margin-top:14px}
+.tab-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:18px;background:#fff;padding:6px;border-radius:16px;border:1px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.tab{padding:9px 4px;border:none;border-radius:11px;background:transparent;color:#999;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:4px;line-height:1.2}
+.tab.on{background:#1D9E75;color:#fff;box-shadow:0 2px 8px rgba(29,158,117,.3)}
+.tab-icon{font-size:18px}
+.sector-btn{background:#fff;border:1.5px solid #eee;border-radius:14px;padding:14px 16px;width:100%;display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:8px;font-family:inherit;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.sector-btn:active{background:#f9fffe;border-color:#1D9E75}
+.sector-name{font-size:15px;font-weight:600;text-align:left}
+.sector-meta{font-size:11px;color:#999;margin-top:3px;text-align:left}
+.badge{display:inline-block;font-size:12px;font-weight:700;padding:5px 11px;border-radius:20px}
+.badge-ok{background:#E1F5EE;color:#0F6E56}
+.badge-pend{background:#f3f3f3;color:#999}
+.prog-bar{height:5px;background:#e8e8e8;border-radius:3px;margin:5px 0}
+.prog-fill{height:100%;background:#1D9E75;border-radius:3px;transition:width .3s}
+.prog-txt{font-size:11px;color:#999}
+.upload-area{border:2px dashed #c8e6de;border-radius:16px;padding:32px 20px;text-align:center;background:#f8fdfb;cursor:pointer;transition:all .2s;margin-bottom:12px}
+.upload-area:active{border-color:#1D9E75;background:#f0fdf8}
+.upload-icon{font-size:40px;margin-bottom:12px}
+.upload-title{font-size:16px;font-weight:700;margin-bottom:5px}
+.upload-sub{font-size:13px;color:#999;line-height:1.5}
+.ai-tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:5px 12px;border-radius:20px;background:#EDE9FE;color:#5B21B6;font-weight:600}
+.thumb-grid{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.thumb{width:80px;height:80px;object-fit:cover;border-radius:10px;border:2px solid #eee;cursor:pointer;transition:transform .15s}
+.thumb:active{transform:scale(.95)}
+.spinner{width:48px;height:48px;border:3px solid #e8e8e8;border-top-color:#1D9E75;border-radius:50%;animation:spin .9s linear infinite;margin-bottom:20px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.senso-hdr{font-size:13px;font-weight:700;color:#0a5c42;background:linear-gradient(90deg,#E1F5EE,#f0fdf8);padding:9px 14px;border-radius:11px;margin:18px 0 10px;border-left:3px solid #1D9E75}
+.q-card{background:#fff;border-radius:14px;padding:16px;margin-bottom:10px;border:1.5px solid #eee;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.q-card.has-answer{border-color:#d0ede4}
+.q-num{font-size:11px;color:#bbb;margin-bottom:5px;font-weight:600;letter-spacing:.3px}
+.q-text{font-size:14px;font-weight:600;line-height:1.55;margin-bottom:12px;color:#1a1a1a}
+.opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.opt-btn{padding:12px 8px;border:1.5px solid #e0e0e0;border-radius:11px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;text-align:center;transition:all .15s;font-family:inherit}
+.opt-btn:active{opacity:.8}
+.opt-btn.sel-c{background:#E1F5EE;border-color:#1D9E75;color:#0a5c42}
+.opt-btn.sel-n{background:#FFF1F2;border-color:#E24B4A;color:#991B1B}
+.ai-hint{font-size:11px;background:#EDE9FE;color:#5B21B6;padding:4px 10px;border-radius:8px;display:inline-block;font-weight:600;margin-bottom:8px}
+.just-box{margin-top:4px}
+.just-lbl{font-size:12px;color:#666;margin-bottom:5px;font-weight:600}
+.err-hint{font-size:12px;color:#E24B4A;margin-top:4px;display:none;font-weight:500}
+.photo-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+.add-photo{width:56px;height:56px;border:2px dashed #ccc;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:24px;color:#bbb;background:none;flex-shrink:0;transition:all .15s}
+.add-photo:active{background:#f5f5f5;border-color:#1D9E75}
+.photo-mini{width:56px;height:56px;object-fit:cover;border-radius:10px;border:2px solid #eee;cursor:pointer;position:relative}
+.photo-wrap{position:relative;display:inline-block}
+.photo-del{position:absolute;top:-6px;right:-6px;width:20px;height:20px;background:#E24B4A;color:#fff;border-radius:50%;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;font-weight:700;line-height:1}
+.score-big{font-size:64px;font-weight:800;text-align:center;margin:14px 0 6px;line-height:1}
+.result-sub{font-size:13px;color:#999;text-align:center;margin-bottom:6px}
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid #f5f5f5}
+.detail-row:last-child{border-bottom:none}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.metric{background:#fff;border-radius:14px;padding:16px;border:1px solid #eee;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.metric-val{font-size:28px;font-weight:800;color:#1D9E75}
+.metric-lbl{font-size:11px;color:#999;margin-top:4px;font-weight:500}
+.rank-item{padding:12px 0;border-bottom:1px solid #f5f5f5}
+.rank-item:last-child{border-bottom:none}
+.rank-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.rank-pos{font-size:16px;width:28px;text-align:center;flex-shrink:0}
+.rank-name{font-size:14px;font-weight:600;flex:1}
+.rank-score{font-size:15px;font-weight:800;color:#1D9E75;flex-shrink:0}
+.rank-meta{font-size:11px;color:#bbb;margin:3px 0 5px 36px}
+.rank-bar{height:4px;background:#f0f0f0;border-radius:2px;margin-left:36px}
+.rank-fill{height:100%;background:linear-gradient(90deg,#1D9E75,#34d399);border-radius:2px}
+.user-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f5f5f5}
+.user-item:last-child{border-bottom:none}
+.avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex-shrink:0}
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:13px 22px;border-radius:28px;font-size:14px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.25)}
+.toast.show{opacity:1}
+.export-bar{background:#fff;border:1px solid #eee;border-radius:14px;padding:14px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+
+/* Lightbox */
+.lightbox{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.92);z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;padding:20px}
+.lightbox.show{display:flex}
+.lightbox img{max-width:100%;max-height:80vh;border-radius:12px;object-fit:contain}
+.lightbox-close{position:absolute;top:20px;right:20px;background:rgba(255,255,255,.2);border:none;color:#fff;font-size:28px;width:44px;height:44px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.lightbox-info{color:#fff;font-size:13px;margin-top:12px;text-align:center;opacity:.7}
+
+/* AI status por foto */
+.ai-status{font-size:12px;margin-top:6px;padding:6px 10px;border-radius:8px;font-weight:500}
+.ai-status.ok{background:#E1F5EE;color:#0a5c42}
+.ai-status.fail{background:#FFF1F2;color:#991B1B}
+.ai-status.proc{background:#EDE9FE;color:#5B21B6}
+</style>
+</head>
+<body>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="Evidência">
+  <div class="lightbox-info" id="lightbox-info"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- LOGIN -->
+<div class="screen active" id="s-login">
+  <div class="login-box">
+    <div class="login-icon">✅</div>
+    <div class="login-title">Auditoria 5S</div>
+    <div class="login-sub">Indústria Moveleira</div>
+    <span class="lbl">Usuário</span>
+    <input class="inp" id="lu" placeholder="Digite seu usuário" autocomplete="username">
+    <span class="lbl">Senha</span>
+    <input class="inp" id="lp" type="password" placeholder="••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="err-box" id="lerr"></div>
+    <button class="btn btn-primary" onclick="doLogin()">Entrar</button>
+    <div class="hint">Primeiro acesso: Administrador / admin123</div>
+  </div>
+</div>
+
+<!-- HOME -->
+<div class="screen" id="s-home">
+  <div class="hdr">
+    <div class="hdr-title">Auditoria 5S</div>
+    <span id="ubadge" style="font-size:13px;color:#999;margin-right:6px"></span>
+    <button class="icon-btn" onclick="doLogout()">Sair</button>
+  </div>
+  <div class="page">
+    <div class="tab-bar">
+      <button class="tab on" id="tb-auditar" onclick="switchTab('auditar',this)"><span class="tab-icon">📋</span>Auditar</button>
+      <button class="tab" id="tb-dashboard" onclick="switchTab('dashboard',this)"><span class="tab-icon">📊</span>Dashboard</button>
+      <button class="tab" id="tb-relatorios" onclick="switchTab('relatorios',this)"><span class="tab-icon">📄</span>Relatórios</button>
+      <button class="tab" id="tb-usuarios" onclick="switchTab('usuarios',this)" style="display:none"><span class="tab-icon">👥</span>Usuários</button>
+    </div>
+    <div id="tab-auditar">
+      <p style="font-size:13px;color:#999;margin-bottom:14px">Mês: <strong id="mes-label" style="color:#333"></strong></p>
+      <div id="sector-list"></div>
+    </div>
+    <div id="tab-dashboard" style="display:none">
+      <select class="inp" id="sel-dash" onchange="renderDash()"></select>
+      <div class="metric-grid" id="dash-metrics"></div>
+      <div class="card"><div class="card-title">Ranking dos setores</div><div id="dash-rank"></div></div>
+    </div>
+    <div id="tab-relatorios" style="display:none">
+      <select class="inp" id="sel-rel" onchange="renderRel()"></select>
+      <div id="rel-list"></div>
+    </div>
+    <div id="tab-usuarios" style="display:none">
+      <div class="card">
+        <div class="card-title">Novo usuário</div>
+        <span class="lbl">Nome</span><input class="inp" id="nn" placeholder="Nome completo">
+        <span class="lbl">Senha</span><input class="inp" id="np" type="password" placeholder="Mínimo 4 caracteres">
+        <span class="lbl">Perfil</span>
+        <select class="inp" id="nr"><option value="auditor">Auditor</option><option value="admin">Administrador</option></select>
+        <button class="btn btn-primary" onclick="addUser()">Criar usuário</button>
+      </div>
+      <div class="export-bar">
+        <div><div style="font-size:13px;font-weight:600">Exportar dados</div><div style="font-size:12px;color:#999">Compartilhar entre dispositivos</div></div>
+        <button class="btn btn-sm btn-secondary" onclick="exportData()">📤 Exportar</button>
+      </div>
+      <div class="export-bar">
+        <div><div style="font-size:13px;font-weight:600">Importar dados</div><div style="font-size:12px;color:#999">Consolidar de outros dispositivos</div></div>
+        <button class="btn btn-sm btn-secondary" onclick="document.getElementById('import-inp').click()">📥 Importar</button>
+        <input type="file" id="import-inp" accept=".json" style="display:none" onchange="importData(event)">
+      </div>
+      <div id="ulist"></div>
+    </div>
+  </div>
+</div>
+
+<!-- UPLOAD -->
+<div class="screen" id="s-upload">
+  <div class="hdr">
+    <button class="back-btn" onclick="go('s-home')" aria-label="Voltar">←</button>
+    <div class="hdr-title" id="up-title"></div>
+  </div>
+  <div class="page">
+    <div class="upload-area" onclick="document.getElementById('bulk-inp').click()">
+      <div class="upload-icon">📷</div>
+      <div class="upload-title">Enviar evidências para IA</div>
+      <div class="upload-sub">Envie todas as fotos do setor — a IA identifica os problemas, separa por pergunta e marca como Não Conforme automaticamente</div>
+    </div>
+    <input type="file" id="bulk-inp" accept="image/*" multiple style="display:none" onchange="handleBulk(event)">
+
+    <div id="bulk-prev" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:14px;font-weight:700" id="bulk-count"></span>
+        <span class="ai-tag">✨ Gemini IA</span>
+      </div>
+      <div class="thumb-grid" id="bulk-thumbs"></div>
+      <button class="btn btn-primary" style="margin-bottom:10px" onclick="runAI()">✨ Analisar fotos com IA</button>
+    </div>
+    <button class="btn btn-secondary" onclick="startManual()">✏️ Preencher manualmente</button>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="screen" id="s-loading">
+  <div class="spinner"></div>
+  <p style="font-size:17px;font-weight:700;margin-bottom:8px">Analisando evidências</p>
+  <p style="font-size:14px;color:#999;margin-bottom:4px" id="ai-msg">A IA está avaliando cada foto...</p>
+  <p style="font-size:13px;color:#bbb" id="ai-sub"></p>
+  <div class="prog-bar" style="margin-top:24px;width:220px"><div class="prog-fill" id="ai-prog" style="width:5%"></div></div>
+</div>
+
+<!-- AUDITORIA -->
+<div class="screen" id="s-audit">
+  <div class="hdr">
+    <button class="back-btn" onclick="confirmLeave()" aria-label="Voltar">←</button>
+    <div style="flex:1">
+      <div class="hdr-title" id="aud-title"></div>
+      <div class="prog-bar"><div class="prog-fill" id="aud-prog" style="width:0%"></div></div>
+      <div class="prog-txt" id="aud-txt">0 de 15 respondidas</div>
+    </div>
+  </div>
+  <div class="page" id="aud-body"></div>
+  <div class="page" style="padding-top:0;padding-bottom:28px">
+    <button class="btn btn-primary" id="btn-finish" onclick="finishAudit()" style="display:none">✅ Finalizar auditoria</button>
+  </div>
+</div>
+
+<!-- RESULTADO -->
+<div class="screen" id="s-result">
+  <div class="hdr">
+    <button class="back-btn" onclick="go('s-home');renderSectors()" aria-label="Voltar">←</button>
+    <div class="hdr-title">Resultado</div>
+  </div>
+  <div class="page">
+    <div class="card" style="text-align:center;padding:28px">
+      <div style="font-size:13px;color:#999;margin-bottom:4px" id="res-sector"></div>
+      <div class="score-big" id="res-score"></div>
+      <div class="result-sub">pontos de 100</div>
+      <div style="font-size:13px;color:#bbb" id="res-meta"></div>
+    </div>
+    <div class="card" id="res-detail"></div>
+    <button class="btn btn-secondary" style="margin-bottom:10px" onclick="gerarPDF()">📄 Gerar relatório PDF</button>
+    <button class="btn btn-primary" onclick="go('s-home');renderSectors()">Voltar ao início</button>
+  </div>
+</div>
+
+<script>
+const GEMINI_KEY = 'AIzaSyAQ.Ab8RN6L5tPd2SK7PFEoGYEtCpDRhEqJrDO_Wqxv4NREk_HIFrg';
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+
+const SECTORS=["Corte","Coladeira","Furadeira","Pintura","Usinagem/Grampeação","Embalagem","Caixa Aberta / AT","Manutenção","Almoxarifado","Expedição","PCP/Qualidade","Protótipo"];
+const QS=[
+  {s:"1º Senso — Utilização",q:[
+    "Há materiais, ferramentas ou objetos desnecessários/sem uso no ambiente?",
+    "Há excesso de materiais ou estoque além da necessidade imediata?",
+    "Existem itens obsoletos, danificados ou fora de padrão no local?",
+    "Há objetos em locais inadequados, prejudicando o fluxo?",
+    "Há desperdícios visíveis de recursos (água, energia, matéria-prima)?"
+  ]},
+  {s:"2º Senso — Organização",q:[
+    "Áreas, postos e locais de armazenamento estão identificados e delimitados?",
+    "Materiais, ferramentas e estoques têm local definido e identificação visual?",
+    "Ferramentas e materiais retornam ao local correto após o uso?",
+    "Não há itens fora de lugar em bancadas, máquinas ou corredores?",
+    "Objetos pessoais estão em locais apropriados e definidos?"
+  ]},
+  {s:"3º Senso — Limpeza",q:[
+    "Máquinas e equipamentos estão limpos, sem acúmulo de sujeira?",
+    "Bancadas, armários e superfícies estão limpas e conservadas?",
+    "Lixeiras e utensílios de limpeza estão disponíveis e em bom estado?",
+    "Existe rotina de limpeza definida e cumprida?",
+    "O piso e locais de difícil acesso estão limpos e sem resíduos?"
+  ]}
+];
+const TQ=15, PPQ=100/TQ;
+const AVBG=['#E1F5EE','#DBEAFE','#FEF3C7','#FCE7F3','#EDE9FE'];
+const AVFG=['#065F46','#1E40AF','#78350F','#831843','#4C1D95'];
+
+let SN={user:null,role:null};
+let CUR={sector:null,ans:{},photos:{},just:{},aiSug:{}};
+let BULK=[];
+let DB={users:[{name:'Administrador',pass:'admin123',role:'admin'}],audits:{}};
+
+function saveDB(){
+  try{
+    const slim={users:DB.users,audits:{}};
+    Object.keys(DB.audits).forEach(k=>{
+      const a=DB.audits[k];
+      slim.audits[k]={ans:a.ans,just:a.just,auditor:a.auditor,hora:a.hora,data:a.data,mes:a.mes};
+    });
+    localStorage.setItem('5s_db',JSON.stringify(slim));
+    Object.keys(DB.audits).forEach(k=>{
+      if(DB.audits[k].photos&&Object.keys(DB.audits[k].photos).length){
+        try{localStorage.setItem('5s_ph_'+k,JSON.stringify(DB.audits[k].photos));}catch{}
+      }
+    });
+  }catch(e){console.warn('Storage cheio',e);}
+}
+
+function loadDB(){
+  try{
+    const raw=localStorage.getItem('5s_db');
+    if(raw){
+      const d=JSON.parse(raw);
+      DB.users=d.users||DB.users;
+      DB.audits=d.audits||{};
+      Object.keys(DB.audits).forEach(k=>{
+        try{const ph=localStorage.getItem('5s_ph_'+k);if(ph)DB.audits[k].photos=JSON.parse(ph);}catch{}
+      });
+    }
+  }catch{}
+}
+
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
+function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0)}
+function getMes(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+function mesLbl(ym){const[y,m]=ym.split('-');return['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(m)-1]+'/'+y}
+function ini(n){return n.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase()}
+function calcScore(ans){let c=0;for(let i=1;i<=TQ;i++){if(ans[i]==='C')c++;}return Math.round(c*PPQ*10)/10}
+function scColor(s){return s>=70?'#0a5c42':s>=40?'#92400E':'#991B1B'}
+
+// LIGHTBOX
+function openLightbox(src,info){
+  document.getElementById('lightbox-img').src=src;
+  document.getElementById('lightbox-info').textContent=info||'';
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('show')}
+
+// LOGIN
+function doLogin(){
+  const name=document.getElementById('lu').value.trim();
+  const pass=document.getElementById('lp').value;
+  const err=document.getElementById('lerr');
+  if(!name||!pass){err.textContent='Preencha usuário e senha.';err.style.display='block';return}
+  const u=DB.users.find(x=>x.name.toLowerCase()===name.toLowerCase()&&x.pass===pass);
+  if(!u){err.textContent='Usuário ou senha incorretos.';err.style.display='block';return}
+  err.style.display='none';
+  SN={user:u.name,role:u.role};
+  document.getElementById('ubadge').textContent=u.name;
+  document.getElementById('tb-usuarios').style.display=u.role==='admin'?'flex':'none';
+  document.getElementById('mes-label').textContent=mesLbl(getMes());
+  renderSectors();go('s-home');
+}
+function doLogout(){SN={user:null,role:null};document.getElementById('lu').value='';document.getElementById('lp').value='';go('s-login')}
+
+// SETORES
+function renderSectors(){
+  const mes=getMes();
+  document.getElementById('sector-list').innerHTML=SECTORS.map(s=>{
+    const key=s+'|'+mes,d=DB.audits[key],score=d?calcScore(d.ans):null;
+    return`<button class="sector-btn" onclick="openSector('${s}')">
+      <div>
+        <div class="sector-name">${s}</div>
+        ${d?`<div class="sector-meta">👤 ${d.auditor} · ${d.hora} · ${d.data}</div>`:''}
+      </div>
+      <span class="badge ${d?'badge-ok':'badge-pend'}">${d?score.toFixed(1)+' pts':'Pendente'}</span>
+    </button>`;
+  }).join('');
+}
+
+function openSector(s){
+  CUR={sector:s,ans:{},photos:{},just:{},aiSug:{}};BULK=[];
+  document.getElementById('up-title').textContent=s;
+  document.getElementById('bulk-prev').style.display='none';
+  document.getElementById('bulk-thumbs').innerHTML='';
+  document.getElementById('bulk-inp').value='';
+  go('s-upload');
+}
+
+// UPLOAD
+function handleBulk(e){
+  const files=[...e.target.files];if(!files.length)return;
+  BULK=[];
+  const wrap=document.getElementById('bulk-thumbs');wrap.innerHTML='';
+  let loaded=0;
+  files.forEach((f,fi)=>{
+    const r=new FileReader();
+    r.onload=ev=>{
+      BULK[fi]={name:f.name,data:ev.target.result,mediaType:f.type||'image/jpeg'};
+      const img=document.createElement('img');
+      img.src=ev.target.result;img.className='thumb';
+      img.onclick=()=>openLightbox(ev.target.result,f.name);
+      wrap.appendChild(img);
+      if(++loaded===files.length){
+        document.getElementById('bulk-count').textContent=files.length+' foto(s) selecionada(s)';
+        document.getElementById('bulk-prev').style.display='block';
+      }
+    };r.readAsDataURL(f);
+  });
+}
+
+// IA GEMINI — analisa foto por foto
+async function analyzePhotoWithGemini(photoData, mediaType, photoIndex, total){
+  const allQs=[];
+  QS.forEach((s,si)=>s.q.forEach((q,qi)=>allQs.push({idx:si*5+qi+1,senso:s.s,q})));
+  const qList=allQs.map(x=>`Q${x.idx} (${x.senso}): ${x.q}`).join('\n');
+
+  const base64=photoData.includes(',')?photoData.split(',')[1]:photoData;
+
+  const prompt=`Você é especialista em metodologia 5S para indústria moveleira.
+
+Analise esta imagem e determine:
+1. Qual das perguntas abaixo ela evidencia melhor (escolha apenas UMA)
+2. Se o item está Conforme (C) ou Não Conforme (N) com base no que vê na imagem
+3. Se Não Conforme, escreva uma justificativa curta em português (1 frase descrevendo o problema visível)
+
+Perguntas disponíveis:
+${qList}
+
+IMPORTANTE: Responda SOMENTE em JSON válido, sem markdown, sem texto fora do JSON:
+{"pergunta": 3, "resultado": "N", "justificativa": "Resíduos de serragem acumulados no piso próximo à máquina."}
+
+Se a imagem mostrar conformidade: {"pergunta": 7, "resultado": "C", "justificativa": ""}`;
+
+  const body={
+    contents:[{parts:[
+      {inline_data:{mime_type:mediaType,data:base64}},
+      {text:prompt}
+    ]}],
+    generationConfig:{temperature:0.1,maxOutputTokens:256}
+  };
+
+  const resp=await fetch(GEMINI_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!resp.ok) throw new Error('Gemini error '+resp.status);
+  const data=await resp.json();
+  const text=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+  const clean=text.replace(/```json|```/g,'').trim();
+  return JSON.parse(clean);
+}
+
+async function runAI(){
+  if(!BULK.length)return;
+  go('s-loading');
+  const mEl=document.getElementById('ai-msg');
+  const sEl=document.getElementById('ai-sub');
+  const pEl=document.getElementById('ai-prog');
+
+  CUR.ans={};CUR.photos={};CUR.just={};CUR.aiSug={};
+
+  let processed=0;
+  const results=[];
+
+  for(let i=0;i<BULK.length;i++){
+    const ph=BULK[i];
+    mEl.textContent=`Analisando foto ${i+1} de ${BULK.length}...`;
+    sEl.textContent=ph.name;
+    pEl.style.width=Math.round(((i)/BULK.length)*100)+'%';
+
+    try{
+      const r=await analyzePhotoWithGemini(ph.data,ph.mediaType,i+1,BULK.length);
+      results.push({foto:i,...r});
+      processed++;
+    }catch(err){
+      console.warn('Erro foto',i+1,err);
+      results.push({foto:i,pergunta:null,resultado:null,justificativa:'',erro:true});
+    }
+  }
+
+  pEl.style.width='100%';
+  mEl.textContent='Montando formulário...';
+
+  // Aplica resultados
+  results.forEach(r=>{
+    if(!r.pergunta||r.erro)return;
+    const n=r.pergunta;
+    if(n<1||n>TQ)return;
+    if(!CUR.photos[n])CUR.photos[n]=[];
+    CUR.photos[n].push(BULK[r.foto].data);
+    CUR.aiSug[n]={r:r.resultado,j:r.justificativa||''};
+    if(r.resultado==='N'){
+      CUR.ans[n]='N';
+      if(r.justificativa)CUR.just[n]=r.justificativa;
+    } else if(r.resultado==='C'){
+      if(!CUR.ans[n])CUR.ans[n]='C';
+    }
+  });
+
+  const erros=results.filter(r=>r.erro).length;
+  setTimeout(()=>{
+    buildAudit();go('s-audit');
+    if(erros>0)toast(`IA concluiu! ${erros} foto(s) não reconhecida(s). Revise.`);
+    else toast(`IA analisou ${processed} foto(s)! Revise as sugestões.`);
+  },400);
+}
+
+function startManual(){CUR.ans={};CUR.photos={};CUR.just={};CUR.aiSug={};buildAudit();go('s-audit')}
+
+// FORMULÁRIO
+function buildAudit(){
+  document.getElementById('aud-title').textContent=CUR.sector;
+  let html='',qn=1;
+  QS.forEach(s=>{
+    html+=`<div class="senso-hdr">${s.s}</div>`;
+    s.q.forEach(q=>{
+      const n=qn,ans=CUR.ans[n]||'',just=CUR.just[n]||'',ai=CUR.aiSug[n],ph=CUR.photos[n]||[];
+      const hasAns=ans!=='';
+      html+=`<div class="q-card ${hasAns?'has-answer':''}" id="qc-${n}">
+        <div class="q-num">PERGUNTA ${n} DE ${TQ}</div>
+        ${ai?`<div class="ai-hint">✨ Analisado pela IA</div>`:''}
+        <div class="q-text">${q}</div>
+        <div class="opt-grid">
+          <button class="opt-btn ${ans==='C'?'sel-c':''}" id="bc-${n}" onclick="setAns(${n},'C')">✔ Conforme</button>
+          <button class="opt-btn ${ans==='N'?'sel-n':''}" id="bn-${n}" onclick="setAns(${n},'N')">✘ Não conforme</button>
+        </div>
+        <div id="jb-${n}" class="just-box" style="${ans==='N'?'':'display:none'}">
+          <div class="just-lbl">Justificativa (obrigatória)</div>
+          <textarea class="inp" id="jt-${n}" oninput="updateProg()" placeholder="Descreva o motivo da não conformidade...">${just}</textarea>
+          <div class="err-hint" id="je-${n}">⚠ Campo obrigatório.</div>
+        </div>
+        <div class="photo-row" id="ph-${n}">
+          ${ph.map((p,pi)=>`<div class="photo-wrap">
+            <img src="${p}" class="photo-mini" onclick="openLightbox('${p}','Pergunta ${n}')">
+            <button class="photo-del" onclick="delPhoto(${n},${pi})">✕</button>
+          </div>`).join('')}
+          <button class="add-photo" onclick="addPhoto(${n})" aria-label="Adicionar foto">📷</button>
+        </div>
+      </div>`;
+      qn++;
+    });
+  });
+  document.getElementById('aud-body').innerHTML=html;
+  updateProg();
+}
+
+function setAns(n,v){
+  CUR.ans[n]=v;
+  document.getElementById('bc-'+n).className='opt-btn'+(v==='C'?' sel-c':'');
+  document.getElementById('bn-'+n).className='opt-btn'+(v==='N'?' sel-n':'');
+  document.getElementById('jb-'+n).style.display=v==='N'?'block':'none';
+  if(v==='C')CUR.just[n]='';
+  document.getElementById('qc-'+n).className='q-card has-answer';
+  updateProg();
+}
+
+function updateProg(){
+  let ans=0,valid=true;
+  for(let i=1;i<=TQ;i++){
+    if(CUR.ans[i])ans++;
+    if(CUR.ans[i]==='N'){const jv=(document.getElementById('jt-'+i)||{}).value||'';if(!jv.trim())valid=false;}
+  }
+  const pct=Math.round(ans/TQ*100);
+  document.getElementById('aud-prog').style.width=pct+'%';
+  document.getElementById('aud-txt').textContent=ans+' de '+TQ+' respondidas';
+  document.getElementById('btn-finish').style.display=(ans===TQ&&valid)?'block':'none';
+}
+
+function addPhoto(n){
+  const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.capture='environment';
+  inp.onchange=e=>{
+    const f=e.target.files[0];if(!f)return;
+    const r=new FileReader();r.onload=ev=>{
+      if(!CUR.photos[n])CUR.photos[n]=[];
+      CUR.photos[n].push(ev.target.result);
+      rebuildPhotoRow(n);
+      toast('Foto adicionada!');
+    };r.readAsDataURL(f);
+  };inp.click();
+}
+
+function delPhoto(n,pi){
+  CUR.photos[n].splice(pi,1);
+  rebuildPhotoRow(n);
+}
+
+function rebuildPhotoRow(n){
+  const ph=CUR.photos[n]||[];
+  const area=document.getElementById('ph-'+n);
+  area.innerHTML=ph.map((p,pi)=>`<div class="photo-wrap">
+    <img src="${p}" class="photo-mini" onclick="openLightbox('${p}','Pergunta ${n}')">
+    <button class="photo-del" onclick="delPhoto(${n},${pi})">✕</button>
+  </div>`).join('')+`<button class="add-photo" onclick="addPhoto(${n})" aria-label="Adicionar foto">📷</button>`;
+}
+
+function finishAudit(){
+  for(let i=1;i<=TQ;i++){
+    if(CUR.ans[i]==='N'){
+      const jEl=document.getElementById('jt-'+i);
+      const jv=jEl?jEl.value.trim():'';
+      if(!jv){document.getElementById('je-'+i).style.display='block';jEl.scrollIntoView({behavior:'smooth',block:'center'});return;}
+      CUR.just[i]=jv;
+    }
+  }
+  const mes=getMes(),now=new Date();
+  const hora=now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const data=now.toLocaleDateString('pt-BR');
+  const key=CUR.sector+'|'+mes;
+  DB.audits[key]={ans:CUR.ans,photos:CUR.photos,just:CUR.just,auditor:SN.user,hora,data,mes};
+  saveDB();showResult(CUR.sector,DB.audits[key]);
+}
+
+// RESULTADO
+function showResult(sector,d){
+  const score=calcScore(d.ans);
+  document.getElementById('res-sector').textContent=sector;
+  document.getElementById('res-score').textContent=score.toFixed(1);
+  document.getElementById('res-score').style.color=scColor(score);
+  document.getElementById('res-meta').textContent=`${d.auditor} · ${d.data} às ${d.hora}`;
+  let html='<div class="card-title">Detalhe por senso</div>';
+  let qn=1;
+  QS.forEach(s=>{
+    let c=0;s.q.forEach((_,i)=>{if(d.ans[qn+i]==='C')c++;});
+    const pts=Math.round(c*PPQ*10)/10;
+    html+=`<div class="detail-row"><span style="font-size:14px;font-weight:500">${s.s.split('—')[1].trim()}</span><span style="font-size:14px;font-weight:700;color:#1D9E75">${c}/${s.q.length} · ${pts.toFixed(1)} pts</span></div>`;
+    qn+=s.q.length;
+  });
+  document.getElementById('res-detail').innerHTML=html;
+  go('s-result');
+}
+
+// PDF
+function gerarPDF(){
+  const mes=getMes(),key=CUR.sector+'|'+mes,d=DB.audits[key];if(!d)return;
+  const score=calcScore(d.ans);
+  let allQs=[];QS.forEach(s=>s.q.forEach(q=>allQs.push({s:s.s,q})));
+  let body='',lastS='';
+  allQs.forEach((item,i)=>{
+    const n=i+1,isC=d.ans[n]==='C';
+    if(item.s!==lastS){body+=`<h2>${item.s}</h2>`;lastS=item.s;}
+    const just=d.just&&d.just[n]||'';
+    const ph=(d.photos&&d.photos[n]||[]).map(p=>`<img src="${p}" style="max-width:160px;max-height:120px;border-radius:6px;margin:5px 5px 0 0;border:1px solid #eee;cursor:pointer" onclick="window.open('${p}')">`).join('');
+    body+=`<div class="q q${isC?'C':'N'}"><strong>${n}. ${item.q}</strong><br><span class="tag${isC?'C':'N'}">${isC?'✔ Conforme':'✘ Não Conforme'}</span>${just?`<div class="just-text">${just}</div>`:''}${ph?`<div style="margin-top:8px">${ph}</div>`:''}</div>`;
+  });
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Auditoria 5S - ${CUR.sector}</title>
+<style>body{font-family:Arial,sans-serif;margin:40px;color:#1a1a1a;font-size:13px}h1{font-size:20px;color:#0a5c42;margin:0}h2{font-size:12px;color:#888;margin:20px 0 6px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #eee;padding-bottom:4px}.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1D9E75;padding-bottom:14px;margin-bottom:20px}.sc{font-size:40px;font-weight:800;color:#1D9E75;line-height:1}.meta{font-size:12px;color:#999;margin-top:8px}.q{padding:10px 14px;margin:6px 0;border-radius:8px;font-size:13px}.qC{background:#F0FDF4;border-left:4px solid #1D9E75}.qN{background:#FFF1F2;border-left:4px solid #E24B4A}.tagC{display:inline-block;background:#DCFCE7;color:#166534;padding:3px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-top:5px}.tagN{display:inline-block;background:#FFE4E6;color:#9F1239;padding:3px 9px;border-radius:12px;font-size:12px;font-weight:700;margin-top:5px}.just-text{font-size:12px;color:#666;margin-top:5px;font-style:italic}.footer{margin-top:32px;font-size:11px;color:#ccc;border-top:1px solid #eee;padding-top:12px}@media print{body{margin:20px}}</style>
+</head><body>
+<div class="hdr"><div><h1>Check List de Auditoria 5S</h1><div class="meta">Setor: <strong>${CUR.sector}</strong> · Auditor: ${d.auditor} · ${d.data} às ${d.hora}</div></div><div style="text-align:right"><div class="sc">${score.toFixed(1)}</div><div style="font-size:12px;color:#999">pontos / 100</div></div></div>
+${body}<div class="footer">Gerado em ${new Date().toLocaleDateString('pt-BR')} · Sistema de Auditoria 5S</div>
+<script>window.onload=()=>setTimeout(()=>window.print(),500)<\/script></body></html>`;
+  const w=window.open('','_blank');
+  if(w){w.document.write(html);w.document.close();}
+  else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));a.download=`Auditoria5S_${CUR.sector.replace(/[\/\s]/g,'_')}_${mes}.html`;a.click();}
+}
+
+// DASHBOARD
+function renderDash(){
+  const mes=document.getElementById('sel-dash').value;
+  let scored=[];
+  SECTORS.forEach(s=>{const d=DB.audits[s+'|'+mes];if(d)scored.push({name:s,score:calcScore(d.ans),auditor:d.auditor,hora:d.hora});});
+  scored.sort((a,b)=>b.score-a.score);
+  const avg=scored.length?Math.round(scored.reduce((s,x)=>s+x.score,0)/scored.length*10)/10:0;
+  document.getElementById('dash-metrics').innerHTML=`
+    <div class="metric"><div class="metric-val">${scored.length}</div><div class="metric-lbl">Auditados</div></div>
+    <div class="metric"><div class="metric-val">${avg.toFixed(1)}</div><div class="metric-lbl">Média geral</div></div>
+    <div class="metric"><div class="metric-val">${SECTORS.length-scored.length}</div><div class="metric-lbl">Pendentes</div></div>
+    <div class="metric"><div class="metric-val">${scored[0]?scored[0].score.toFixed(1):'—'}</div><div class="metric-lbl">Melhor nota</div></div>`;
+  const medals=['🥇','🥈','🥉'];
+  document.getElementById('dash-rank').innerHTML=scored.length?scored.map((s,i)=>`
+    <div class="rank-item">
+      <div class="rank-top"><span class="rank-pos">${medals[i]||i+1+'.'}</span><span class="rank-name">${s.name}</span><span class="rank-score">${s.score.toFixed(1)}</span></div>
+      <div class="rank-meta">${s.auditor} · ${s.hora}</div>
+      <div class="rank-bar"><div class="rank-fill" style="width:${s.score}%"></div></div>
+    </div>`).join(''):'<p style="color:#bbb;text-align:center;padding:24px">Nenhuma auditoria neste mês</p>';
+}
+
+function renderRel(){
+  const mes=document.getElementById('sel-rel').value;
+  let html='';
+  SECTORS.forEach(s=>{
+    const d=DB.audits[s+'|'+mes];
+    if(d){
+      const score=calcScore(d.ans);
+      html+=`<div class="card" style="display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-weight:700;font-size:15px">${s}</div><div style="font-size:12px;color:#bbb;margin-top:3px">${d.auditor} · ${d.data} ${d.hora}</div></div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:18px;font-weight:800;color:#1D9E75">${score.toFixed(1)}</span>
+          <button class="btn btn-sm btn-secondary" onclick="CUR.sector='${s}';gerarPDF()">📄 PDF</button>
+        </div>
+      </div>`;
+    }
+  });
+  document.getElementById('rel-list').innerHTML=html||'<p style="color:#bbb;text-align:center;padding:24px">Nenhuma auditoria neste mês</p>';
+}
+
+function populateMonths(){
+  const months=new Set([getMes()]);
+  Object.keys(DB.audits).forEach(k=>{const p=k.split('|');if(p[1])months.add(p[1]);});
+  const opts=[...months].sort().reverse().map(m=>`<option value="${m}">${mesLbl(m)}</option>`).join('');
+  document.getElementById('sel-dash').innerHTML=opts;
+  document.getElementById('sel-rel').innerHTML=opts;
+}
+
+// USUÁRIOS
+function addUser(){
+  const name=document.getElementById('nn').value.trim();
+  const pass=document.getElementById('np').value;
+  const role=document.getElementById('nr').value;
+  if(!name||pass.length<4){toast('Preencha nome e senha (mín. 4 caracteres)');return;}
+  if(DB.users.find(u=>u.name.toLowerCase()===name.toLowerCase())){toast('Usuário já existe');return;}
+  DB.users.push({name,pass,role});saveDB();
+  document.getElementById('nn').value='';document.getElementById('np').value='';
+  toast('Usuário criado!');renderUsers();
+}
+function removeUser(name){DB.users=DB.users.filter(u=>u.name!==name);saveDB();renderUsers();toast('Usuário removido.');}
+function renderUsers(){
+  const html=DB.users.map((u,i)=>`
+    <div class="user-item">
+      <div class="avatar" style="background:${AVBG[i%5]};color:${AVFG[i%5]}">${ini(u.name)}</div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:600">${u.name}</div><div style="font-size:12px;color:#999">${u.role==='admin'?'Administrador':'Auditor'}</div></div>
+      ${u.name!=='Administrador'?`<button class="btn btn-sm btn-danger" onclick="removeUser('${u.name}')">Remover</button>`:''}
+    </div>`).join('');
+  document.getElementById('ulist').innerHTML=`<div class="card">${html}</div>`;
+}
+
+// EXPORTAR / IMPORTAR
+function exportData(){
+  const blob=new Blob([JSON.stringify({users:DB.users,audits:DB.audits},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`auditoria5s_${getMes()}.json`;a.click();
+  toast('Dados exportados!');
+}
+function importData(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      if(d.audits){Object.keys(d.audits).forEach(k=>{DB.audits[k]=d.audits[k];});}
+      if(d.users){d.users.forEach(u=>{if(!DB.users.find(x=>x.name===u.name))DB.users.push(u);});}
+      saveDB();toast('Importado com sucesso!');renderSectors();renderUsers();
+    }catch{toast('Arquivo inválido.');}
+  };r.readAsText(f);e.target.value='';
+}
+
+function switchTab(tab,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));btn.classList.add('on');
+  ['auditar','dashboard','relatorios','usuarios'].forEach(t=>document.getElementById('tab-'+t).style.display='none');
+  document.getElementById('tab-'+tab).style.display='block';
+  if(tab==='dashboard'){populateMonths();renderDash();}
+  if(tab==='relatorios'){populateMonths();renderRel();}
+  if(tab==='usuarios')renderUsers();
+}
+
+function confirmLeave(){
+  if(Object.keys(CUR.ans).length>0&&!confirm('Sair? O progresso não será salvo.'))return;
+  go('s-home');renderSectors();
+}
+
+loadDB();
+</script>
+</body>
+</html>
