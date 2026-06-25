@@ -228,6 +228,11 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
         <div class="setor-tag" id="tag-setor-fotos">📍 Setor</div>
         <div class="card-title">Evidências fotográficas</div>
         <div class="card-sub">A IA vincula cada foto às 25 perguntas do checklist automaticamente</div>
+        <div style="margin-bottom:12px">
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--texto)">Sensos ativos para análise:</div>
+          <div id="sensos-toggle" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:6px">Pontuação: <strong id="info-pontuacao">calculando...</strong></div>
+        </div>
         <div class="upload-area">
           <input type="file" accept="image/*" multiple onchange="adicionarFotos(this)">
           <div class="upload-icon">📷</div>
@@ -251,8 +256,8 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
         <div class="setor-tag" id="tag-setor-result">📍 Setor</div>
         <div class="contadores">
           <div class="cnt cnt-total"><div class="n" id="cnt-total">0</div><div class="l">Total</div></div>
-          <div class="cnt cnt-c"><div class="n" id="cnt-c">0</div><div class="l">Conforme</div></div>
-          <div class="cnt cnt-r"><div class="n" id="cnt-r">0</div><div class="l">Restrição</div></div>
+          <div class="cnt cnt-c"><div class="n" id="cnt-c">0</div><div class="l">Conformes</div></div>
+          <div class="cnt cnt-r"><div class="n" id="cnt-r" style="font-size:18px">0</div><div class="l">Pontuação</div></div>
           <div class="cnt cnt-nc"><div class="n" id="cnt-nc">0</div><div class="l">Não conf.</div></div>
         </div>
         <div id="lista-resultados"></div>
@@ -275,8 +280,8 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
         </div>
         <div class="contadores">
           <div class="cnt cnt-total"><div class="n" id="suc-total">0</div><div class="l">Fotos</div></div>
-          <div class="cnt cnt-c"><div class="n" id="suc-c">0</div><div class="l">Conforme</div></div>
-          <div class="cnt cnt-r"><div class="n" id="suc-r">0</div><div class="l">Restrição</div></div>
+          <div class="cnt cnt-c"><div class="n" id="suc-c">0</div><div class="l">Conformes</div></div>
+          <div class="cnt cnt-r"><div class="n" id="suc-r" style="font-size:16px">0</div><div class="l">Pontuação</div></div>
           <div class="cnt cnt-nc"><div class="n" id="suc-nc">0</div><div class="l">Não conf.</div></div>
         </div>
         <button class="btn btn-ghost" onclick="gerarPDF()">📄 Exportar PDF</button>
@@ -294,26 +299,36 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
       </div>
       <div id="painel-overview">
         <div class="card">
-          <div class="card-title">Visão geral</div>
+          <div class="card-title">📊 Visão geral</div>
           <div class="card-sub" id="dash-sub">Carregando dados...</div>
           <div class="dash-grid">
             <div class="dash-card"><div class="dn" id="d-total">—</div><div class="dl">Registros</div></div>
-            <div class="dash-card"><div class="dn" style="color:var(--verde)" id="d-pct">—</div><div class="dl">Conformidade geral</div></div>
+            <div class="dash-card"><div class="dn" style="color:var(--verde)" id="d-pct">—</div><div class="dl">Conformidade</div></div>
             <div class="dash-card"><div class="dn" style="color:var(--verde)" id="d-c">—</div><div class="dl">Conformes</div></div>
             <div class="dash-card"><div class="dn" style="color:var(--vermelho)" id="d-nc">—</div><div class="dl">Não conformes</div></div>
           </div>
+          <div style="margin-top:8px">
+            <div style="font-size:12px;font-weight:600;margin-bottom:6px">Conformidade geral</div>
+            <div style="height:20px;background:var(--cinza);border-radius:10px;overflow:hidden;position:relative">
+              <div id="barra-geral" style="height:100%;border-radius:10px;background:var(--verde);transition:width .8s ease;width:0%"></div>
+              <span id="barra-geral-txt" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;font-weight:700;color:#fff">0%</span>
+            </div>
+          </div>
         </div>
         <div class="card">
-          <div class="card-title">🏆 Ranking de setores</div>
+          <div class="card-title">📋 Conformidade por senso</div>
+          <div id="barras-senso"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🏆 Ranking por auditor</div>
           <div class="card-sub">Ordenado por conformidade</div>
           <div id="ranking-setores"><div class="empty"><div class="ei">⏳</div><p>Carregando...</p></div></div>
         </div>
       </div>
       <div id="painel-sensos" style="display:none">
         <div class="card">
-          <div class="card-title">Conformidade por senso</div>
-          <div class="card-sub">Desempenho de cada S</div>
-          <div id="barras-senso"></div>
+          <div class="card-title">Gráfico por senso</div>
+          <canvas id="grafico-senso" style="width:100%;max-height:300px"></canvas>
         </div>
       </div>
       <div id="painel-hist" style="display:none">
@@ -393,6 +408,14 @@ const PQ=[
   {id:23,s:'Shitsuke',t:'Regras e padrões do setor estão sendo cumpridos pelos colaboradores?'},
   {id:24,s:'Shitsuke',t:'Existe plano de ação para tratar não conformidades, atualizado com responsáveis?'},
   {id:25,s:'Shitsuke',t:'Gestão à vista (indicadores, auditorias, planos) está atualizada e acessível?'}
+];
+
+let SENSOS_CONFIG=[
+  {nome:'Seiri',label:'1S — Seiri (Utilização)',ativo:true},
+  {nome:'Seiton',label:'2S — Seiton (Organização)',ativo:true},
+  {nome:'Seiso',label:'3S — Seiso (Limpeza)',ativo:true},
+  {nome:'Seiketsu',label:'4S — Seiketsu (Padronização)',ativo:false},
+  {nome:'Shitsuke',label:'5S — Shitsuke (Disciplina)',ativo:false}
 ];
 
 let usuario=null,setor='',fotos=[],resultados=[],telaAtual='tela-home',pilha=[];
@@ -579,7 +602,29 @@ function confirmarSetor(){
   document.getElementById('tag-setor-result').textContent='📍 '+s;
   setHeader(s,'Adicionar evidências fotográficas');
   atualizarGridFotos();
+  renderizarSensos();
   irPara('tela-fotos');
+}
+
+function renderizarSensos(){
+  const div=document.getElementById('sensos-toggle');
+  if(!div)return;
+  div.innerHTML=SENSOS_CONFIG.map((s,i)=>`
+    <button onclick="toggleSenso(${i})" style="padding:5px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid ${s.ativo?'var(--azul)':'var(--borda)'};background:${s.ativo?'var(--azul)':'transparent'};color:${s.ativo?'#fff':'var(--muted)'};transition:all .15s">
+      ${s.ativo?'✅':'⬜'} ${s.label.split('—')[0].trim()}
+    </button>`).join('');
+  atualizarInfoPontuacao();
+}
+
+function toggleSenso(idx){
+  SENSOS_CONFIG[idx].ativo=!SENSOS_CONFIG[idx].ativo;
+  renderizarSensos();
+}
+
+function atualizarInfoPontuacao(){
+  const {totalPq,valorPorPergunta}=calcularPontuacao();
+  const el=document.getElementById('info-pontuacao');
+  if(el)el.textContent=`${totalPq} perguntas ativas | ${valorPorPergunta} pts por pergunta | Máximo: 100 pts`;
 }
 
 function adicionarFotos(input){
@@ -634,7 +679,9 @@ async function analisarTudo(){
 
 async function analisarFoto(foto){
   const b64=foto.base64.split(',')[1];
-  const lista=PQ.map(p=>`P${p.id}.[${p.s}] ${p.t}`).join('\n');
+  const sensosAtivos=SENSOS_CONFIG.filter(s=>s.ativo).map(s=>s.nome);
+  const pqAtivas=PQ.filter(p=>sensosAtivos.includes(p.s));
+  const lista=pqAtivas.map(p=>`P${p.id}.[${p.s}] ${p.t}`).join('\n');
   try{
     const resp=await fetch('https://api.groq.com/openai/v1/chat/completions',{
       method:'POST',
@@ -643,41 +690,56 @@ async function analisarFoto(foto){
         model:'meta-llama/llama-4-scout-17b-16e-instruct',
         messages:[{role:'user',content:[
           {type:'image_url',image_url:{url:'data:image/jpeg;base64,'+b64}},
-          {type:'text',text:`Você é auditor 5S especialista em indústria moveleira. Analise esta foto do setor "${setor}".
+          {type:'text',text:`Você é auditor 5S especialista em indústria moveleira. Analise esta foto do setor "${setor}". Sensos ativos: ${sensosAtivos.join(', ')}.
 
-Identifique qual das 25 perguntas abaixo melhor corresponde ao que está sendo mostrado na foto:
+Identifique qual das perguntas abaixo melhor corresponde ao que está sendo mostrado na foto:
 ${lista}
 
-Avalie e responda APENAS com JSON sem texto adicional:
-{"pq_id":número 1-25,"senso":"nome do senso","pergunta":"texto resumido em até 10 palavras","resultado":"CONFORME ou COM RESTRICOES ou NAO CONFORME","justificativa":"observação objetiva em até 2 linhas"}`}
+Responda APENAS com JSON válido sem texto adicional, sem markdown:
+{"pq_id":numero,"senso":"nome do senso","pergunta":"texto resumido em ate 10 palavras","resultado":"CONFORME ou NAO CONFORME","justificativa":"observacao objetiva em ate 2 linhas"}`}
         ]}]
       })
     });
     const data=await resp.json();
+    if(!data.choices||!data.choices[0]||!data.choices[0].message){
+      throw new Error('Resposta inválida da IA: '+(data.error?.message||JSON.stringify(data)));
+    }
     const txt=data.choices[0].message.content.replace(/```json|```/g,'').trim();
-    return JSON.parse(txt);
+    const json=JSON.parse(txt);
+    // Garantir que resultado seja apenas CONFORME ou NAO CONFORME
+    if(json.resultado&&json.resultado!=='CONFORME'){json.resultado='NAO CONFORME';}
+    return json;
   }catch(e){
     return{pq_id:0,senso:'Erro',pergunta:'Erro na análise',resultado:'NAO CONFORME',justificativa:e.message};
   }
 }
 
+function calcularPontuacao(){
+  const sensosAtivos=SENSOS_CONFIG.filter(s=>s.ativo);
+  const pqAtivas=PQ.filter(p=>sensosAtivos.map(s=>s.nome).includes(p.s));
+  const totalPq=pqAtivas.length||1;
+  const valorPorPergunta=parseFloat((100/totalPq).toFixed(2));
+  return{totalPq,valorPorPergunta};
+}
+
 function atualizarContadores(){
   const c=resultados.filter(r=>r.resultado==='CONFORME').length;
-  const rc=resultados.filter(r=>r.resultado==='COM RESTRICOES').length;
-  const nc=resultados.filter(r=>r.resultado==='NAO CONFORME').length;
+  const nc=resultados.filter(r=>r.resultado==='NAO CONFORME'||r.resultado==='Erro').length;
+  const {valorPorPergunta}=calcularPontuacao();
+  const pontos=(c*valorPorPergunta).toFixed(1);
   document.getElementById('cnt-total').textContent=resultados.length;
   document.getElementById('cnt-c').textContent=c;
-  document.getElementById('cnt-r').textContent=rc;
+  document.getElementById('cnt-r').textContent=pontos;
   document.getElementById('cnt-nc').textContent=nc;
 }
 
 function renderizarResultados(){
   document.getElementById('lista-resultados').innerHTML=resultados.map((r,i)=>{
-    const isC=r.resultado==='CONFORME',isR=r.resultado==='COM RESTRICOES';
-    const cls=isC?'res-c':isR?'res-r':'res-nc';
-    const bcls=isC?'badge-c':isR?'badge-r':'badge-nc';
-    const label=isC?'✅ CONFORME':isR?'⚠️ COM RESTRIÇÕES':'❌ NÃO CONFORME';
-    return`<div class="res-card ${cls}">
+    const isC=r.resultado==='CONFORME';
+    const cls=isC?'res-c':'res-nc';
+    const bcls=isC?'badge-c':'badge-nc';
+    const label=isC?'✅ CONFORME':'❌ NÃO CONFORME';
+    return`<div class="res-card ${cls}" id="res-${i}">
       <div class="res-head">
         <img class="res-thumb" src="${r.foto}">
         <div class="res-info">
@@ -685,6 +747,7 @@ function renderizarResultados(){
             <span class="badge ${bcls}">${label}</span>
             <span class="badge badge-senso">${r.senso||''}</span>
             ${r.pq_id?`<span class="badge badge-num">P${r.pq_id}</span>`:''}
+            <button onclick="editarResultado(${i})" style="background:none;border:1px solid #94a3b8;border-radius:4px;padding:1px 6px;font-size:10px;cursor:pointer;color:#64748b">✏️ Editar</button>
           </div>
           <div class="res-pergunta">${r.pergunta||''}</div>
           <div class="res-just">${r.justificativa||''}</div>
@@ -692,6 +755,16 @@ function renderizarResultados(){
       </div>
     </div>`;
   }).join('');
+}
+
+function editarResultado(idx){
+  const r=resultados[idx];
+  const novoRes=confirm(`Resultado atual: ${r.resultado}\n\nClique OK para marcar como CONFORME\nClique Cancelar para marcar como NÃO CONFORME`)?'CONFORME':'NAO CONFORME';
+  resultados[idx].resultado=novoRes;
+  const novaJust=prompt('Justificativa (opcional):',r.justificativa||'');
+  if(novaJust!==null)resultados[idx].justificativa=novaJust;
+  atualizarContadores();
+  renderizarResultados();
 }
 
 // SALVAR
@@ -723,9 +796,11 @@ async function salvarAuditoria(){
     const pct=resultados.length?Math.round((c/resultados.length)*100):0;
     document.getElementById('pct-final').textContent=pct+'%';
     document.getElementById('pct-setor-label').textContent=setor;
+    const {valorPorPergunta}=calcularPontuacao();
+    const pontos=(c*valorPorPergunta).toFixed(1);
     document.getElementById('suc-total').textContent=resultados.length;
     document.getElementById('suc-c').textContent=c;
-    document.getElementById('suc-r').textContent=rc;
+    document.getElementById('suc-r').textContent=pontos+' pts';
     document.getElementById('suc-nc').textContent=nc;
     irPara('tela-sucesso');setHeader('Auditoria salva!','');
   }catch(e){alert('Erro ao salvar: '+e.message);}
@@ -810,9 +885,13 @@ function gerarPDF(){
 async function carregarDashboard(){
   mudarTab('overview');
   try{
-    const r=await fetch(`${SB_URL}/rest/v1/itens_auditoria?select=*`,{headers:{apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY}});
-    const items=await r.json();
-    if(!Array.isArray(items))return;
+    const [rItems,rAuds]=await Promise.all([
+      fetch(`${SB_URL}/rest/v1/itens_auditoria?select=*`,{headers:{apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY}}),
+      fetch(`${SB_URL}/rest/v1/auditorias?select=*`,{headers:{apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY}})
+    ]);
+    const items=await rItems.json();
+    const auds=await rAuds.json();
+    if(!Array.isArray(items)){return;}
     const tot=items.length;
     const c=items.filter(i=>i.resultado==='CONFORME').length;
     const nc=items.filter(i=>i.resultado==='NAO CONFORME').length;
@@ -821,50 +900,49 @@ async function carregarDashboard(){
     document.getElementById('d-pct').textContent=pct+'%';
     document.getElementById('d-c').textContent=c;
     document.getElementById('d-nc').textContent=nc;
-    document.getElementById('dash-sub').textContent=`${tot} registros totais no sistema`;
-
-    // Ranking
-    const ar=await fetch(`${SB_URL}/rest/v1/auditorias?select=*`,{headers:{apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY}});
-    const auds=await ar.json();
-    const ranking=[];
-    // Agrupando por auditor como proxy de setor (setor não está salvo diretamente)
+    document.getElementById('dash-sub').textContent=`${tot} registros | ${Array.isArray(auds)?auds.length:0} auditorias`;
+    const bg=document.getElementById('barra-geral');
+    const bgt=document.getElementById('barra-geral-txt');
+    if(bg){bg.style.width=pct+'%';bg.style.background=pct>=80?'#16a34a':pct>=50?'#f59e0b':'#dc2626';}
+    if(bgt){bgt.textContent=pct+'%';}
     const sensos=['Seiri','Seiton','Seiso','Seiketsu','Shitsuke'];
-    // Barras por senso
-    document.getElementById('barras-senso').innerHTML=sensos.map((s,idx)=>{
+    document.getElementById('barras-senso').innerHTML=sensos.map((s,i)=>{
       const si=items.filter(x=>x.senso===s);
       const sc=si.filter(x=>x.resultado==='CONFORME').length;
       const sp=si.length?Math.round((sc/si.length)*100):0;
       const cor=sp>=80?'#16a34a':sp>=50?'#f59e0b':'#dc2626';
       return`<div class="barra-container">
-        <div class="barra-label"><span>${idx+1}S — ${s}</span><span style="font-weight:700;color:${cor}">${sp}%</span></div>
+        <div class="barra-label"><span>${i+1}S — ${s} <span style="color:var(--muted);font-weight:400">(${si.length} itens)</span></span><span style="font-weight:700;color:${cor}">${sp}%</span></div>
         <div class="barra"><div class="barra-fill" style="width:${sp}%;background:${cor}"></div></div>
       </div>`;
     }).join('');
-
-    // Ranking por auditor
-    const byAud={};
-    items.forEach(i=>{
-      const aud=auds.find(a=>a.id===i.auditoria_id);
-      const nome=aud?.auditor||'Desconhecido';
-      if(!byAud[nome])byAud[nome]={c:0,t:0};
-      byAud[nome].t++;
-      if(i.resultado==='CONFORME')byAud[nome].c++;
-    });
-    const rank=Object.entries(byAud).map(([n,v])=>({nome:n,pct:Math.round((v.c/v.t)*100),t:v.t})).sort((a,b)=>b.pct-a.pct);
-    const emojis=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
-    document.getElementById('ranking-setores').innerHTML=rank.length?rank.map((r,i)=>{
-      const cor=r.pct>=80?'#16a34a':r.pct>=50?'#f59e0b':'#dc2626';
-      return`<div class="ranking-item">
-        <div class="rank-pos">${emojis[i]||i+1}</div>
-        <div class="rank-info">
-          <div class="rank-nome">${r.nome}</div>
-          <div class="rank-pct">${r.t} registros</div>
-          <div class="rank-bar"><div class="rank-bar-fill" style="width:${r.pct}%;background:${cor}"></div></div>
-        </div>
-        <div style="font-size:16px;font-weight:700;color:${cor}">${r.pct}%</div>
-      </div>`;
-    }).join(''):'<div class="empty"><div class="ei">📊</div><p>Nenhum dado ainda</p></div>';
-  }catch(e){console.error(e);}
+    if(Array.isArray(auds)&&auds.length){
+      const byAud={};
+      items.forEach(i=>{
+        const aud=auds.find(a=>a.id===i.auditoria_id);
+        const nome=aud?.auditor||'Desconhecido';
+        if(!byAud[nome])byAud[nome]={c:0,t:0};
+        byAud[nome].t++;
+        if(i.resultado==='CONFORME')byAud[nome].c++;
+      });
+      const rank=Object.entries(byAud).map(([n,v])=>({nome:n,pct:v.t?Math.round((v.c/v.t)*100):0,t:v.t})).sort((a,b)=>b.pct-a.pct);
+      const emojis=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+      document.getElementById('ranking-setores').innerHTML=rank.map((r,i)=>{
+        const cor=r.pct>=80?'#16a34a':r.pct>=50?'#f59e0b':'#dc2626';
+        return`<div class="ranking-item">
+          <div class="rank-pos">${emojis[i]||i+1}</div>
+          <div class="rank-info">
+            <div class="rank-nome">${r.nome}</div>
+            <div class="rank-pct">${r.t} registros</div>
+            <div class="rank-bar"><div class="rank-bar-fill" style="width:${r.pct}%;background:${cor}"></div></div>
+          </div>
+          <div style="font-size:18px;font-weight:700;color:${cor}">${r.pct}%</div>
+        </div>`;
+      }).join('');
+    } else {
+      document.getElementById('ranking-setores').innerHTML='<div class="empty"><div class="ei">📊</div><p>Nenhuma auditoria ainda</p></div>';
+    }
+  }catch(e){console.error('Dashboard erro:',e);}
 }
 
 async function carregarHistorico(){
