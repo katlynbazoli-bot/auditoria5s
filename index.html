@@ -420,7 +420,7 @@ async function fazerLogin(){
   btn.textContent='Entrando...';btn.disabled=true;
   try{
     const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=password`,{
-      method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},
+      method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY},
       body:JSON.stringify({email,password:senha})
     });
     const d=await r.json();
