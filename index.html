@@ -652,6 +652,8 @@ function atualizarGridFotos(){
     </div>`).join('');
 }
 
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
 async function analisarTudo(){
   if(!fotos.length)return;
   resultados=[];
@@ -664,17 +666,38 @@ async function analisarTudo(){
   atualizarContadores();
 
   for(let i=0;i<fotos.length;i++){
-    document.getElementById('loading-txt').textContent=`Analisando foto ${i+1} de ${fotos.length}...`;
-    const r=await analisarFoto(fotos[i]);
+    document.getElementById('loading-txt').textContent=`Analisando foto ${i+1} de ${fotos.length}... aguarde`;
+    const r=await analisarComRetry(fotos[i],i);
     resultados.push({...r,foto:fotos[i].base64});
     atualizarContadores();
     renderizarResultados();
+    // Pausa de 6 segundos entre fotos para respeitar o limite de tokens por minuto
+    if(i<fotos.length-1){
+      for(let s=6;s>0;s--){
+        document.getElementById('loading-txt').textContent=`Foto ${i+1} analisada ✅ — próxima em ${s}s...`;
+        await sleep(1000);
+      }
+    }
   }
 
   document.getElementById('loading-bar').style.display='none';
   document.getElementById('btn-salvar').style.display='block';
   document.getElementById('btn-pdf').style.display='block';
   setHeader(setor,'Resultados da auditoria');
+}
+
+async function analisarComRetry(foto,idx,tentativa=0){
+  const r=await analisarFoto(foto);
+  // Se foi erro de rate limit, aguarda e tenta novamente
+  if(r.justificativa&&r.justificativa.includes('Rate limit')&&tentativa<3){
+    const espera=12*(tentativa+1);
+    for(let s=espera;s>0;s--){
+      document.getElementById('loading-txt').textContent=`⏳ Limite atingido — tentando novamente em ${s}s...`;
+      await sleep(1000);
+    }
+    return analisarComRetry(foto,idx,tentativa+1);
+  }
+  return r;
 }
 
 async function analisarFoto(foto){
