@@ -415,20 +415,31 @@ async function fazerLogin(){
   const email=document.getElementById('login-email').value.trim();
   const senha=document.getElementById('login-senha').value;
   const err=document.getElementById('login-err');
+  err.style.display='none';
   if(!email||!senha){showErr(err,'Preencha e-mail e senha.');return;}
   const btn=document.getElementById('btn-login-submit');
   btn.textContent='Entrando...';btn.disabled=true;
   try{
     const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=password`,{
-      method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY},
-      body:JSON.stringify({email,password:senha})
+      method:'POST',
+      headers:{
+        'apikey':SB_KEY,
+        'Authorization':'Bearer '+SB_KEY,
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({email:email,password:senha})
     });
     const d=await r.json();
-    if(!r.ok){showErr(err,d.error_description||'Credenciais inválidas.');return;}
-    usuario={id:d.user.id,email:d.user.email,nome:d.user.user_metadata?.nome||email.split('@')[0],token:d.access_token};
+    if(!r.ok){
+      const msg=d.error_description||d.msg||d.message||'Credenciais inválidas. Verifique e-mail e senha.';
+      showErr(err,msg);return;
+    }
+    if(!d.access_token){showErr(err,'Erro ao autenticar. Tente novamente.');return;}
+    const nome=d.user?.user_metadata?.nome||email.split('@')[0];
+    usuario={id:d.user.id,email:d.user.email,nome:nome,token:d.access_token};
     localStorage.setItem('aud5s',JSON.stringify(usuario));
     iniciar();
-  }catch(e){showErr(err,'Erro de conexão.');}
+  }catch(e){showErr(err,'Erro de conexão com o servidor: '+e.message);}
   finally{btn.textContent='🔐 Entrar';btn.disabled=false;}
 }
 
@@ -438,6 +449,7 @@ async function criarConta(){
   const s1=document.getElementById('cad-senha').value;
   const s2=document.getElementById('cad-senha2').value;
   const err=document.getElementById('cadastro-err');
+  err.style.display='none';
   if(!nome||!email||!s1){showErr(err,'Preencha todos os campos.');return;}
   if(s1!==s2){showErr(err,'As senhas não coincidem.');return;}
   if(s1.length<6){showErr(err,'Senha deve ter mínimo 6 caracteres.');return;}
@@ -445,14 +457,31 @@ async function criarConta(){
   btn.textContent='Criando...';btn.disabled=true;
   try{
     const r=await fetch(`${SB_URL}/auth/v1/signup`,{
-      method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY},
-      body:JSON.stringify({email,password:s1,data:{nome}})
+      method:'POST',
+      headers:{
+        'apikey':SB_KEY,
+        'Authorization':'Bearer '+SB_KEY,
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({email:email,password:s1,data:{nome:nome}})
     });
-    const d=await r.json();
-    if(!r.ok){showErr(err,d.error_description||'Erro ao criar conta.');return;}
-    mostrarLogin();
-    alert('✅ Conta criada com sucesso! Faça login para continuar.');
-  }catch(e){showErr(err,'Erro de conexão.');}
+    const txt=await r.text();
+    let d;
+    try{d=JSON.parse(txt);}catch{showErr(err,'Resposta inválida do servidor.');return;}
+    if(!r.ok){
+      const msg=d.error_description||d.msg||d.message||'Erro ao criar conta.';
+      showErr(err,msg);return;
+    }
+    if(d.user||d.id){
+      mostrarLogin();
+      alert('✅ Conta criada! Faça login para continuar.');
+    } else if(d.error){
+      showErr(err,d.error);
+    } else {
+      mostrarLogin();
+      alert('✅ Conta criada! Faça login para continuar.');
+    }
+  }catch(e){showErr(err,'Erro de conexão: '+e.message);}
   finally{btn.textContent='✅ Criar conta';btn.disabled=false;}
 }
 
