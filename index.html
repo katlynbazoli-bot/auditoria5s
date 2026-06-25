@@ -445,7 +445,7 @@ async function criarConta(){
   btn.textContent='Criando...';btn.disabled=true;
   try{
     const r=await fetch(`${SB_URL}/auth/v1/signup`,{
-      method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},
+      method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY},
       body:JSON.stringify({email,password:s1,data:{nome}})
     });
     const d=await r.json();
@@ -466,7 +466,7 @@ async function criarNovoUsuario(){
   if(senha.length<6){showErr(err,'Senha mínimo 6 caracteres.');return;}
   try{
     const r=await fetch(`${SB_URL}/auth/v1/signup`,{
-      method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},
+      method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY},
       body:JSON.stringify({email,password:senha,data:{nome,role}})
     });
     const d=await r.json();
