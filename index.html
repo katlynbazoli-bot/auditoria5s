@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Auditoria 5S — Colibri Móveis</title>
+<title>Auditoria 5S — Colibri Móveis</atitle>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -744,13 +744,11 @@ async function analisarFoto(foto){
           {role:'system',content:'Você é auditor 5S de indústria moveleira. Responda SEMPRE em JSON válido, sem markdown, sem texto extra.'},
           {role:'user',content:[
           {type:'image_url',image_url:{url:'data:image/jpeg;base64,'+b64}},
-          {type:'text',text:`Setor: ${setor}. Sensos ativos: ${sensosAtivos.join(', ')}.
+          {type:'text',text:`Setor: ${setor}. Analise a foto e retorne SOMENTE este JSON, sem texto adicional:
+{"pq_id":0,"senso":"Seiri","pergunta":"descrição curta","resultado":"CONFORME","justificativa":"o que foi observado"}
 
-Perguntas disponíveis:
-${lista}
-
-Analise a foto e responda APENAS este JSON (sem nenhum texto antes ou depois):
-{"pq_id":NUMERO,"senso":"SENSO","pergunta":"DESCRICAO_CURTA_DO_QUE_FOI_AVALIADO","resultado":"CONFORME ou NAO CONFORME","justificativa":"O_QUE_VOCE_VIU_NA_FOTO_EM_UMA_FRASE"}`}
+Perguntas ativas (${sensosAtivos.join(', ')}):
+${lista}`}
         ]}]
       })
     });
@@ -759,11 +757,24 @@ Analise a foto e responda APENAS este JSON (sem nenhum texto antes ou depois):
       throw new Error('Resposta inválida da IA: '+(data.error?.message||JSON.stringify(data)));
     }
     let txt=data.choices[0].message.content;
-    // Extrair JSON mesmo que venha com texto ao redor
-    const match=txt.match(/\{[\s\S]*\}/);
-    if(!match)throw new Error('JSON não encontrado na resposta: '+txt);
-    txt=match[0];
-    const json=JSON.parse(txt);
+    // Extrair apenas o primeiro objeto JSON válido da resposta
+    let json=null;
+    const matches=txt.match(/\{[^{}]*\}/g);
+    if(matches){
+      for(const m of matches){
+        try{json=JSON.parse(m);if(json.resultado)break;}catch(e){}
+      }
+    }
+    if(!json){
+      // Tentar limpar e parsear
+      txt=txt.replace(/```json|```/g,'').trim();
+      const start=txt.indexOf('{');
+      const end=txt.lastIndexOf('}');
+      if(start>=0&&end>start){
+        try{json=JSON.parse(txt.slice(start,end+1));}catch(e){}
+      }
+    }
+    if(!json)throw new Error('Não foi possível extrair JSON: '+txt.slice(0,100));
     // Garantir campos obrigatórios
     if(!json.pq_id)json.pq_id=0;
     if(!json.senso)json.senso='Não identificado';
