@@ -290,48 +290,76 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
     </div>
 
     <!-- DASHBOARD -->
-    <div class="tela" id="tela-dash">
-      <br>
-      <div class="tabs">
-        <button class="tab ativa" onclick="mudarTab('overview')" id="tab-overview">📊 Resumo</button>
-        <button class="tab" onclick="mudarTab('sensos')" id="tab-sensos">📋 Por senso</button>
-        <button class="tab" onclick="mudarTab('hist')" id="tab-hist">🕐 Histórico</button>
+    <div class="tela" id="tela-dash" style="padding:0;max-width:100%">
+      <div style="padding:12px 16px;background:var(--branco);border-bottom:1px solid var(--borda);display:flex;gap:4px;overflow-x:auto">
+        <button class="tab ativa" onclick="mudarTab('overview')" id="tab-overview" style="white-space:nowrap;flex-shrink:0">📊 Resumo</button>
+        <button class="tab" onclick="mudarTab('sensos')" id="tab-sensos" style="white-space:nowrap;flex-shrink:0">📋 Por senso</button>
+        <button class="tab" onclick="mudarTab('hist')" id="tab-hist" style="white-space:nowrap;flex-shrink:0">🕐 Histórico</button>
       </div>
-      <div id="painel-overview">
-        <div class="card">
-          <div class="card-title">📊 Visão geral</div>
-          <div class="card-sub" id="dash-sub">Carregando dados...</div>
-          <div class="dash-grid">
-            <div class="dash-card"><div class="dn" id="d-total">—</div><div class="dl">Registros</div></div>
-            <div class="dash-card"><div class="dn" style="color:var(--verde)" id="d-pct">—</div><div class="dl">Conformidade</div></div>
-            <div class="dash-card"><div class="dn" style="color:var(--verde)" id="d-c">—</div><div class="dl">Conformes</div></div>
-            <div class="dash-card"><div class="dn" style="color:var(--vermelho)" id="d-nc">—</div><div class="dl">Não conformes</div></div>
+
+      <div id="painel-overview" style="padding:16px">
+        <!-- KPIs -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+          <div style="background:var(--azul);color:#fff;border-radius:12px;padding:14px 8px;text-align:center">
+            <div style="font-size:26px;font-weight:700" id="d-total">—</div>
+            <div style="font-size:10px;opacity:.85;margin-top:2px">Registros</div>
           </div>
-          <div style="margin-top:8px">
-            <div style="font-size:12px;font-weight:600;margin-bottom:6px">Conformidade geral</div>
-            <div style="height:20px;background:var(--cinza);border-radius:10px;overflow:hidden;position:relative">
-              <div id="barra-geral" style="height:100%;border-radius:10px;background:var(--verde);transition:width .8s ease;width:0%"></div>
-              <span id="barra-geral-txt" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:11px;font-weight:700;color:#fff">0%</span>
-            </div>
+          <div style="background:var(--verde);color:#fff;border-radius:12px;padding:14px 8px;text-align:center">
+            <div style="font-size:26px;font-weight:700" id="d-pct">—</div>
+            <div style="font-size:10px;opacity:.85;margin-top:2px">Conformidade</div>
+          </div>
+          <div style="background:#16a34a20;border:1.5px solid var(--verde);border-radius:12px;padding:14px 8px;text-align:center">
+            <div style="font-size:26px;font-weight:700;color:var(--verde)" id="d-c">—</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">Conformes</div>
+          </div>
+          <div style="background:#dc262620;border:1.5px solid var(--vermelho);border-radius:12px;padding:14px 8px;text-align:center">
+            <div style="font-size:26px;font-weight:700;color:var(--vermelho)" id="d-nc">—</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">Não conf.</div>
           </div>
         </div>
-        <div class="card">
-          <div class="card-title">📋 Conformidade por senso</div>
+
+        <!-- Barra geral -->
+        <div style="background:var(--branco);border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid var(--borda)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:13px;font-weight:600">Conformidade geral</span>
+            <span style="font-size:16px;font-weight:700" id="barra-geral-txt">0%</span>
+          </div>
+          <div style="height:16px;background:var(--cinza);border-radius:8px;overflow:hidden">
+            <div id="barra-geral" style="height:100%;border-radius:8px;background:var(--verde);transition:width 1s ease;width:0%"></div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:6px" id="dash-sub">Carregando...</div>
+        </div>
+
+        <!-- Gráfico de barras por senso -->
+        <div style="background:var(--branco);border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid var(--borda)">
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px">📊 Gráfico por senso</div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-around;height:160px;gap:8px" id="grafico-pilares"></div>
+          <div style="display:flex;justify-content:space-around;margin-top:8px" id="grafico-labels"></div>
+        </div>
+
+        <!-- Ranking auditores -->
+        <div style="background:var(--branco);border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid var(--borda)">
+          <div style="font-size:13px;font-weight:700;margin-bottom:4px">🏆 Ranking de auditores</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Por número de auditorias realizadas</div>
+          <div id="ranking-auditores"></div>
+        </div>
+
+        <!-- Ranking conformidade -->
+        <div style="background:var(--branco);border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid var(--borda)">
+          <div style="font-size:13px;font-weight:700;margin-bottom:4px">📋 Conformidade por auditor</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Ordenado por % de conformidade</div>
+          <div id="ranking-setores"></div>
+        </div>
+      </div>
+
+      <div id="painel-sensos" style="display:none;padding:16px">
+        <div style="background:var(--branco);border-radius:12px;padding:14px;border:1px solid var(--borda)">
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px">Conformidade por senso</div>
           <div id="barras-senso"></div>
         </div>
-        <div class="card">
-          <div class="card-title">🏆 Ranking por auditor</div>
-          <div class="card-sub">Ordenado por conformidade</div>
-          <div id="ranking-setores"><div class="empty"><div class="ei">⏳</div><p>Carregando...</p></div></div>
-        </div>
       </div>
-      <div id="painel-sensos" style="display:none">
-        <div class="card">
-          <div class="card-title">Gráfico por senso</div>
-          <canvas id="grafico-senso" style="width:100%;max-height:300px"></canvas>
-        </div>
-      </div>
-      <div id="painel-hist" style="display:none">
+
+      <div id="painel-hist" style="display:none;padding:16px">
         <div id="lista-historico"><div class="empty"><div class="ei">⏳</div><p>Carregando...</p></div></div>
       </div>
     </div>
@@ -711,15 +739,18 @@ async function analisarFoto(foto){
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ},
       body:JSON.stringify({
         model:'meta-llama/llama-4-scout-17b-16e-instruct',
-        messages:[{role:'user',content:[
+        max_tokens:300,
+        messages:[
+          {role:'system',content:'Você é auditor 5S de indústria moveleira. Responda SEMPRE em JSON válido, sem markdown, sem texto extra.'},
+          {role:'user',content:[
           {type:'image_url',image_url:{url:'data:image/jpeg;base64,'+b64}},
-          {type:'text',text:`Você é auditor 5S especialista em indústria moveleira. Analise esta foto do setor "${setor}". Sensos ativos: ${sensosAtivos.join(', ')}.
+          {type:'text',text:`Setor: ${setor}. Sensos ativos: ${sensosAtivos.join(', ')}.
 
-Identifique qual das perguntas abaixo melhor corresponde ao que está sendo mostrado na foto:
+Perguntas disponíveis:
 ${lista}
 
-Responda APENAS com JSON válido sem texto adicional, sem markdown:
-{"pq_id":numero,"senso":"nome do senso","pergunta":"texto resumido em ate 10 palavras","resultado":"CONFORME ou NAO CONFORME","justificativa":"observacao objetiva em ate 2 linhas"}`}
+Analise a foto e responda APENAS este JSON (sem nenhum texto antes ou depois):
+{"pq_id":NUMERO,"senso":"SENSO","pergunta":"DESCRICAO_CURTA_DO_QUE_FOI_AVALIADO","resultado":"CONFORME ou NAO CONFORME","justificativa":"O_QUE_VOCE_VIU_NA_FOTO_EM_UMA_FRASE"}`}
         ]}]
       })
     });
@@ -727,10 +758,18 @@ Responda APENAS com JSON válido sem texto adicional, sem markdown:
     if(!data.choices||!data.choices[0]||!data.choices[0].message){
       throw new Error('Resposta inválida da IA: '+(data.error?.message||JSON.stringify(data)));
     }
-    const txt=data.choices[0].message.content.replace(/```json|```/g,'').trim();
+    let txt=data.choices[0].message.content;
+    // Extrair JSON mesmo que venha com texto ao redor
+    const match=txt.match(/\{[\s\S]*\}/);
+    if(!match)throw new Error('JSON não encontrado na resposta: '+txt);
+    txt=match[0];
     const json=JSON.parse(txt);
-    // Garantir que resultado seja apenas CONFORME ou NAO CONFORME
-    if(json.resultado&&json.resultado!=='CONFORME'){json.resultado='NAO CONFORME';}
+    // Garantir campos obrigatórios
+    if(!json.pq_id)json.pq_id=0;
+    if(!json.senso)json.senso='Não identificado';
+    if(!json.pergunta||json.pergunta.length<3)json.pergunta='Avaliação geral do setor';
+    if(!json.justificativa||json.justificativa.length<3)json.justificativa='Análise realizada com base na imagem fornecida.';
+    if(json.resultado!=='CONFORME')json.resultado='NAO CONFORME';
     return json;
   }catch(e){
     return{pq_id:0,senso:'Erro',pergunta:'Erro na análise',resultado:'NAO CONFORME',justificativa:e.message};
@@ -914,59 +953,113 @@ async function carregarDashboard(){
     ]);
     const items=await rItems.json();
     const auds=await rAuds.json();
-    if(!Array.isArray(items)){return;}
+    if(!Array.isArray(items))return;
+
     const tot=items.length;
     const c=items.filter(i=>i.resultado==='CONFORME').length;
-    const nc=items.filter(i=>i.resultado==='NAO CONFORME').length;
+    const nc=tot-c;
     const pct=tot?Math.round((c/tot)*100):0;
+
     document.getElementById('d-total').textContent=tot;
     document.getElementById('d-pct').textContent=pct+'%';
     document.getElementById('d-c').textContent=c;
     document.getElementById('d-nc').textContent=nc;
-    document.getElementById('dash-sub').textContent=`${tot} registros | ${Array.isArray(auds)?auds.length:0} auditorias`;
+    document.getElementById('dash-sub').textContent=`${tot} registros em ${Array.isArray(auds)?auds.length:0} auditorias`;
+
     const bg=document.getElementById('barra-geral');
     const bgt=document.getElementById('barra-geral-txt');
-    if(bg){bg.style.width=pct+'%';bg.style.background=pct>=80?'#16a34a':pct>=50?'#f59e0b':'#dc2626';}
-    if(bgt){bgt.textContent=pct+'%';}
+    if(bg){setTimeout(()=>{bg.style.width=pct+'%';bg.style.background=pct>=80?'#16a34a':pct>=50?'#f59e0b':'#dc2626';},100);}
+    if(bgt)bgt.textContent=pct+'%';
+
+    // Gráfico de pilares por senso
     const sensos=['Seiri','Seiton','Seiso','Seiketsu','Shitsuke'];
-    document.getElementById('barras-senso').innerHTML=sensos.map((s,i)=>{
+    const labels=['1S','2S','3S','4S','5S'];
+    const dadosSenso=sensos.map(s=>{
       const si=items.filter(x=>x.senso===s);
       const sc=si.filter(x=>x.resultado==='CONFORME').length;
-      const sp=si.length?Math.round((sc/si.length)*100):0;
-      const cor=sp>=80?'#16a34a':sp>=50?'#f59e0b':'#dc2626';
-      return`<div class="barra-container">
-        <div class="barra-label"><span>${i+1}S — ${s} <span style="color:var(--muted);font-weight:400">(${si.length} itens)</span></span><span style="font-weight:700;color:${cor}">${sp}%</span></div>
-        <div class="barra"><div class="barra-fill" style="width:${sp}%;background:${cor}"></div></div>
+      return{nome:s,pct:si.length?Math.round((sc/si.length)*100):0,total:si.length};
+    });
+
+    // Pilares
+    const maxPct=Math.max(...dadosSenso.map(d=>d.pct),1);
+    document.getElementById('grafico-pilares').innerHTML=dadosSenso.map((d,i)=>{
+      const h=Math.max((d.pct/100)*140,2);
+      const cor=d.pct>=80?'#16a34a':d.pct>=50?'#f59e0b':'#dc2626';
+      return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px">
+        <div style="font-size:11px;font-weight:700;color:${cor}">${d.pct}%</div>
+        <div style="width:100%;max-width:48px;height:${h}px;background:${cor};border-radius:6px 6px 0 0;transition:height .8s ease;position:relative;min-height:4px">
+          <div style="position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:9px;color:#fff;font-weight:700">${d.total}</div>
+        </div>
       </div>`;
     }).join('');
+
+    document.getElementById('grafico-labels').innerHTML=labels.map((l,i)=>`
+      <div style="flex:1;text-align:center;font-size:10px;font-weight:600;color:var(--muted)">${l}</div>`).join('');
+
+    // Barras por senso (aba sensos)
+    document.getElementById('barras-senso').innerHTML=dadosSenso.map((d,i)=>{
+      const cor=d.pct>=80?'#16a34a':d.pct>=50?'#f59e0b':'#dc2626';
+      return`<div class="barra-container">
+        <div class="barra-label">
+          <span>${i+1}S — ${d.nome} <span style="color:var(--muted);font-weight:400">(${d.total} itens)</span></span>
+          <span style="font-weight:700;color:${cor}">${d.pct}%</span>
+        </div>
+        <div class="barra"><div class="barra-fill" style="width:${d.pct}%;background:${cor}"></div></div>
+      </div>`;
+    }).join('');
+
     if(Array.isArray(auds)&&auds.length){
-      const byAud={};
+      // Ranking por número de auditorias
+      const byAudCount={};
+      auds.forEach(a=>{
+        const n=a.auditor||'Desconhecido';
+        byAudCount[n]=(byAudCount[n]||0)+1;
+      });
+      const rankCount=Object.entries(byAudCount).map(([n,qt])=>({nome:n,qt})).sort((a,b)=>b.qt-a.qt);
+      const emojis=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+      document.getElementById('ranking-auditores').innerHTML=rankCount.map((r,i)=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda)">
+          <div style="font-size:18px;width:28px;text-align:center">${emojis[i]||i+1}</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600">${r.nome}</div>
+            <div style="height:6px;background:var(--cinza);border-radius:3px;margin-top:4px;overflow:hidden">
+              <div style="height:100%;background:var(--azul);border-radius:3px;width:${Math.min((r.qt/rankCount[0].qt)*100,100)}%"></div>
+            </div>
+          </div>
+          <div style="font-size:16px;font-weight:700;color:var(--azul)">${r.qt} <span style="font-size:10px;font-weight:400;color:var(--muted)">audit.</span></div>
+        </div>`).join('');
+
+      // Ranking por conformidade
+      const byAudConf={};
       items.forEach(i=>{
         const aud=auds.find(a=>a.id===i.auditoria_id);
         const nome=aud?.auditor||'Desconhecido';
-        if(!byAud[nome])byAud[nome]={c:0,t:0};
-        byAud[nome].t++;
-        if(i.resultado==='CONFORME')byAud[nome].c++;
+        if(!byAudConf[nome])byAudConf[nome]={c:0,t:0};
+        byAudConf[nome].t++;
+        if(i.resultado==='CONFORME')byAudConf[nome].c++;
       });
-      const rank=Object.entries(byAud).map(([n,v])=>({nome:n,pct:v.t?Math.round((v.c/v.t)*100):0,t:v.t})).sort((a,b)=>b.pct-a.pct);
-      const emojis=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
-      document.getElementById('ranking-setores').innerHTML=rank.map((r,i)=>{
+      const rankConf=Object.entries(byAudConf).map(([n,v])=>({nome:n,pct:v.t?Math.round((v.c/v.t)*100):0,c:v.c,t:v.t})).sort((a,b)=>b.pct-a.pct);
+      document.getElementById('ranking-setores').innerHTML=rankConf.map((r,i)=>{
         const cor=r.pct>=80?'#16a34a':r.pct>=50?'#f59e0b':'#dc2626';
-        return`<div class="ranking-item">
-          <div class="rank-pos">${emojis[i]||i+1}</div>
-          <div class="rank-info">
-            <div class="rank-nome">${r.nome}</div>
-            <div class="rank-pct">${r.t} registros</div>
-            <div class="rank-bar"><div class="rank-bar-fill" style="width:${r.pct}%;background:${cor}"></div></div>
+        return`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda)">
+          <div style="font-size:18px;width:28px;text-align:center">${emojis[i]||i+1}</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600">${r.nome}</div>
+            <div style="font-size:10px;color:var(--muted)">${r.c} conformes de ${r.t} registros</div>
+            <div style="height:6px;background:var(--cinza);border-radius:3px;margin-top:4px;overflow:hidden">
+              <div style="height:100%;background:${cor};border-radius:3px;width:${r.pct}%"></div>
+            </div>
           </div>
           <div style="font-size:18px;font-weight:700;color:${cor}">${r.pct}%</div>
         </div>`;
       }).join('');
     } else {
-      document.getElementById('ranking-setores').innerHTML='<div class="empty"><div class="ei">📊</div><p>Nenhuma auditoria ainda</p></div>';
+      document.getElementById('ranking-auditores').innerHTML='<div class="empty"><div class="ei">📊</div><p>Nenhuma auditoria ainda</p></div>';
+      document.getElementById('ranking-setores').innerHTML='';
     }
   }catch(e){console.error('Dashboard erro:',e);}
 }
+
 
 async function carregarHistorico(){
   try{
