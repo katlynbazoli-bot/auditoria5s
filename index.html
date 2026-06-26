@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Auditoria 5S — Colibri Móveis</atitle>
+<title>Auditoria 5S — Colibri Móveis</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -744,11 +744,7 @@ async function analisarFoto(foto){
           {role:'system',content:'Você é auditor 5S de indústria moveleira. Responda SEMPRE em JSON válido, sem markdown, sem texto extra.'},
           {role:'user',content:[
           {type:'image_url',image_url:{url:'data:image/jpeg;base64,'+b64}},
-          {type:'text',text:`Setor: ${setor}. Analise a foto e retorne SOMENTE este JSON, sem texto adicional:
-{"pq_id":0,"senso":"Seiri","pergunta":"descrição curta","resultado":"CONFORME","justificativa":"o que foi observado"}
-
-Perguntas ativas (${sensosAtivos.join(', ')}):
-${lista}`}
+          {type:'text',text:'Setor: '+setor+'. Sensos ativos: '+sensosAtivos.join(', ')+'. Perguntas:\n'+lista+'\n\nAnalise a foto. Responda SOMENTE o JSON abaixo preenchido, sem texto extra:\n{pq_id: NUMERO, senso: NOME_SENSO, pergunta: DESCRICAO_CURTA, resultado: CONFORME ou NAO CONFORME, justificativa: O_QUE_VIU_NA_FOTO}'}
         ]}]
       })
     });
