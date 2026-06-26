@@ -744,7 +744,19 @@ async function analisarFoto(foto){
           {role:'system',content:'Você é auditor 5S de indústria moveleira. Responda SEMPRE em JSON válido, sem markdown, sem texto extra.'},
           {role:'user',content:[
           {type:'image_url',image_url:{url:'data:image/jpeg;base64,'+b64}},
-          {type:'text',text:'Setor: '+setor+'. Sensos ativos: '+sensosAtivos.join(', ')+'. Perguntas:\n'+lista+'\n\nAnalise a foto. Responda SOMENTE o JSON abaixo preenchido, sem texto extra:\n{pq_id: NUMERO, senso: NOME_SENSO, pergunta: DESCRICAO_CURTA, resultado: CONFORME ou NAO CONFORME, justificativa: O_QUE_VIU_NA_FOTO}'}
+          {type:'text',text:'CONTEXTO: Você é um auditor 5S sênior com 15 anos de experiência em indústria moveleira. Conhece profundamente processos de: corte de madeira, usinagem, coladeira de bordas, pintura (UV/poliuretano), embalagem, expedição, almoxarifado, manutenção industrial e PCP. ' +
+'SETOR AUDITADO: '+setor+'. SENSOS ATIVOS: '+sensosAtivos.join(', ')+'. ' +
+'CRITÉRIOS DE AVALIAÇÃO:\n' +
+'- CONFORME: área organizada, limpa, identificada, sem excessos, padrões cumpridos\n' +
+'- NAO CONFORME: qualquer desvio visível que comprometa segurança, qualidade ou produtividade\n\n' +
+'PERGUNTAS DO CHECKLIST:\n'+lista+'\n\n' +
+'TAREFA: Analise DETALHADAMENTE a foto e identifique:\n' +
+'1. Qual pergunta do checklist melhor se aplica ao que você vê\n' +
+'2. Se está CONFORME ou NAO CONFORME\n' +
+'3. O que especificamente você observou na imagem\n' +
+'4. Se NAO CONFORME: qual ação corretiva deve ser tomada\n\n' +
+'Responda SOMENTE este JSON sem nenhum texto antes ou depois:\n' +
+'{pq_id: NUMERO, senso: NOME_SENSO, pergunta: DESCRICAO_CURTA, resultado: CONFORME ou NAO CONFORME, justificativa: DETALHE_O_QUE_VIU, sugestao: ACAO_CORRETIVA_SE_NC_OU_VAZIO_SE_CONFORME}'}
         ]}]
       })
     });
@@ -777,6 +789,7 @@ async function analisarFoto(foto){
     if(!json.pergunta||json.pergunta.length<3)json.pergunta='Avaliação geral do setor';
     if(!json.justificativa||json.justificativa.length<3)json.justificativa='Análise realizada com base na imagem fornecida.';
     if(json.resultado!=='CONFORME')json.resultado='NAO CONFORME';
+    if(!json.sugestao)json.sugestao='';
     return json;
   }catch(e){
     return{pq_id:0,senso:'Erro',pergunta:'Erro na análise',resultado:'NAO CONFORME',justificativa:e.message};
@@ -805,33 +818,116 @@ function atualizarContadores(){
 function renderizarResultados(){
   document.getElementById('lista-resultados').innerHTML=resultados.map((r,i)=>{
     const isC=r.resultado==='CONFORME';
+    const isErr=r.senso==='Erro';
     const cls=isC?'res-c':'res-nc';
     const bcls=isC?'badge-c':'badge-nc';
     const label=isC?'✅ CONFORME':'❌ NÃO CONFORME';
+    const sugestao=!isC&&r.sugestao?`
+      <div style="margin-top:6px;padding:6px 8px;background:rgba(245,158,11,.12);border-left:3px solid #f59e0b;border-radius:4px">
+        <div style="font-size:10px;font-weight:700;color:#92400e;margin-bottom:2px">💡 SUGESTÃO DE MELHORIA</div>
+        <div style="font-size:11px;color:#78350f;line-height:1.4">${r.sugestao}</div>
+      </div>`:'';
     return`<div class="res-card ${cls}" id="res-${i}">
       <div class="res-head">
-        <img class="res-thumb" src="${r.foto}">
+        <img class="res-thumb" src="${r.foto}" style="cursor:pointer" onclick="verFotoGrande('${r.foto}')">
         <div class="res-info">
           <div class="res-badges">
             <span class="badge ${bcls}">${label}</span>
             <span class="badge badge-senso">${r.senso||''}</span>
             ${r.pq_id?`<span class="badge badge-num">P${r.pq_id}</span>`:''}
-            <button onclick="editarResultado(${i})" style="background:none;border:1px solid #94a3b8;border-radius:4px;padding:1px 6px;font-size:10px;cursor:pointer;color:#64748b">✏️ Editar</button>
           </div>
           <div class="res-pergunta">${r.pergunta||''}</div>
           <div class="res-just">${r.justificativa||''}</div>
+          ${sugestao}
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <button onclick="editarResultado(${i})" style="padding:3px 8px;border:1px solid #94a3b8;border-radius:6px;font-size:10px;cursor:pointer;color:#475569;background:#f8fafc">✏️ Editar manualmente</button>
+            <button onclick="reavaliarFoto(${i})" style="padding:3px 8px;border:1px solid var(--azul);border-radius:6px;font-size:10px;cursor:pointer;color:var(--azul);background:var(--azul-claro)">🔄 Reavaliar com IA</button>
+          </div>
         </div>
       </div>
     </div>`;
   }).join('');
 }
 
+function verFotoGrande(src){
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer';
+  overlay.innerHTML=`<img src="${src}" style="max-width:95vw;max-height:95vh;border-radius:8px;object-fit:contain">`;
+  overlay.onclick=()=>overlay.remove();
+  document.body.appendChild(overlay);
+}
+
 function editarResultado(idx){
   const r=resultados[idx];
-  const novoRes=confirm(`Resultado atual: ${r.resultado}\n\nClique OK para marcar como CONFORME\nClique Cancelar para marcar como NÃO CONFORME`)?'CONFORME':'NAO CONFORME';
-  resultados[idx].resultado=novoRes;
-  const novaJust=prompt('Justificativa (opcional):',r.justificativa||'');
-  if(novaJust!==null)resultados[idx].justificativa=novaJust;
+  // Criar modal de edição
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML=`
+    <div style="background:#fff;border-radius:16px;padding:20px;width:100%;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,.3)">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">✏️ Editar avaliação</div>
+      <div style="font-size:11px;color:#64748b;margin-bottom:14px">Corrija o resultado e a justificativa manualmente</div>
+      <img src="${r.foto}" style="width:100%;height:140px;object-fit:cover;border-radius:8px;margin-bottom:12px">
+      <div style="margin-bottom:10px">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px">Resultado</label>
+        <div style="display:flex;gap:8px">
+          <button id="btn-conf" onclick="selecionarRes('CONFORME')" style="flex:1;padding:10px;border-radius:8px;border:2px solid ${r.resultado==='CONFORME'?'#16a34a':'#e2e8f0'};background:${r.resultado==='CONFORME'?'#dcfce7':'#f8fafc'};color:${r.resultado==='CONFORME'?'#16a34a':'#64748b'};font-weight:600;font-size:13px;cursor:pointer">✅ CONFORME</button>
+          <button id="btn-nc" onclick="selecionarRes('NAO CONFORME')" style="flex:1;padding:10px;border-radius:8px;border:2px solid ${r.resultado!=='CONFORME'?'#dc2626':'#e2e8f0'};background:${r.resultado!=='CONFORME'?'#fee2e2':'#f8fafc'};color:${r.resultado!=='CONFORME'?'#dc2626':'#64748b'};font-weight:600;font-size:13px;cursor:pointer">❌ NÃO CONFORME</button>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Justificativa</label>
+        <textarea id="edit-just" style="width:100%;padding:8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;resize:vertical;min-height:60px;font-family:inherit">${r.justificativa||''}</textarea>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Sugestão de melhoria</label>
+        <textarea id="edit-sug" style="width:100%;padding:8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;resize:vertical;min-height:60px;font-family:inherit">${r.sugestao||''}</textarea>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="salvarEdicao(${idx})" style="flex:1;padding:11px;background:#1d4ed8;color:#fff;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer">💾 Salvar</button>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;padding:11px;background:#f1f5f9;color:#475569;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer">Cancelar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  window._editRes=r.resultado;
+}
+
+function selecionarRes(res){
+  window._editRes=res;
+  const bc=document.getElementById('btn-conf');
+  const bn=document.getElementById('btn-nc');
+  if(res==='CONFORME'){
+    bc.style.border='2px solid #16a34a';bc.style.background='#dcfce7';bc.style.color='#16a34a';
+    bn.style.border='2px solid #e2e8f0';bn.style.background='#f8fafc';bn.style.color='#64748b';
+  } else {
+    bn.style.border='2px solid #dc2626';bn.style.background='#fee2e2';bn.style.color='#dc2626';
+    bc.style.border='2px solid #e2e8f0';bc.style.background='#f8fafc';bc.style.color='#64748b';
+  }
+}
+
+function salvarEdicao(idx){
+  resultados[idx].resultado=window._editRes||resultados[idx].resultado;
+  resultados[idx].justificativa=document.getElementById('edit-just').value;
+  resultados[idx].sugestao=document.getElementById('edit-sug').value;
+  document.querySelector('[style*="position:fixed"][style*="z-index:9999"]')?.remove();
+  atualizarContadores();
+  renderizarResultados();
+}
+
+async function reavaliarFoto(idx){
+  const r=resultados[idx];
+  // Mostrar loading no card
+  const card=document.getElementById('res-'+idx);
+  if(card){
+    const oldHtml=card.innerHTML;
+    card.innerHTML='<div style="padding:16px;text-align:center;color:#64748b"><div style="font-size:24px;margin-bottom:8px">🔄</div><div style="font-size:13px">Reavaliando com IA...</div></div>';
+  }
+  try{
+    const fotoObj={base64:r.foto};
+    const novo=await analisarFoto(fotoObj);
+    resultados[idx]={...novo,foto:r.foto};
+  } catch(e){
+    resultados[idx].justificativa='Erro na reavaliação: '+e.message;
+  }
   atualizarContadores();
   renderizarResultados();
 }
