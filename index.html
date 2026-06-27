@@ -814,25 +814,49 @@ function calcularPontuacao(){
 }
 
 function calcularResultadoFinal(){
-  // Lógica: perguntas NAO CONFORME = 0pts; todas as demais (conformes + não fotografadas) = pts
-  const {totalPq,valorPorPergunta}=calcularPontuacao();
-  const nc=resultados.filter(r=>r.resultado==='NAO CONFORME').length;
-  const conformesExplicitos=resultados.filter(r=>r.resultado==='CONFORME').length;
-  // Perguntas não fotografadas são consideradas CONFORME
-  const naoFotografadas=Math.max(0,totalPq-resultados.length);
+  // Lógica correta: avalia por PERGUNTA, não por foto
+  // Uma pergunta pode ter várias fotos — se qualquer uma for NC, a pergunta é NC
+  // Perguntas sem nenhuma foto = CONFORME por padrão
+  const sensosAtivos=SENSOS_CONFIG.filter(s=>s.ativo).map(s=>s.nome);
+  const pqAtivas=PQ.filter(p=>sensosAtivos.includes(p.s));
+  const totalPq=pqAtivas.length||1;
+  const valorPorPergunta=parseFloat((100/totalPq).toFixed(4));
+
+  // Agrupar resultados por pq_id — se alguma foto for NC, a pergunta é NC
+  const avaliacaoPorPq={};
+  resultados.forEach(r=>{
+    const id=parseInt(r.pq_id)||0;
+    if(id===0)return;
+    if(!avaliacaoPorPq[id])avaliacaoPorPq[id]='CONFORME';
+    if(r.resultado==='NAO CONFORME')avaliacaoPorPq[id]='NAO CONFORME';
+  });
+
+  let nc=0,conformesExplicitos=0,naoFotografadas=0;
+  pqAtivas.forEach(pq=>{
+    if(!avaliacaoPorPq[pq.id]){
+      // Sem foto = conforme por padrão
+      naoFotografadas++;
+    } else if(avaliacaoPorPq[pq.id]==='NAO CONFORME'){
+      nc++;
+    } else {
+      conformesExplicitos++;
+    }
+  });
+
   const totalConformes=conformesExplicitos+naoFotografadas;
-  const pontos=parseFloat((totalConformes*valorPorPergunta).toFixed(1));
+  const pontos=parseFloat(Math.min((totalConformes*valorPorPergunta),100).toFixed(1));
   return{totalPq,nc,conformesExplicitos,naoFotografadas,totalConformes,pontos,valorPorPergunta};
 }
 
 function atualizarContadores(){
-  const {totalPq,nc,totalConformes,pontos}=calcularResultadoFinal();
-  const total=resultados.length;
+  const {totalPq,nc,conformesExplicitos,naoFotografadas,totalConformes,pontos}=calcularResultadoFinal();
+  // Perguntas únicas avaliadas (com foto)
+  const pqsComFoto=new Set(resultados.filter(r=>r.pq_id>0).map(r=>parseInt(r.pq_id))).size;
   const el=id=>document.getElementById(id);
-  if(el('cnt-total'))el('cnt-total').textContent=total+'/'+totalPq;
+  if(el('cnt-total'))el('cnt-total').textContent=pqsComFoto+'/'+totalPq;
   if(el('cnt-c'))el('cnt-c').textContent=totalConformes;
   if(el('cnt-nc'))el('cnt-nc').textContent=nc;
-  if(el('cnt-pts'))el('cnt-pts').textContent=Math.min(pontos,100).toFixed(1);
+  if(el('cnt-pts'))el('cnt-pts').textContent=pontos.toFixed(1);
 }
 
 function renderizarResultados(){
@@ -980,15 +1004,15 @@ async function salvarAuditoria(){
         })
       });
     }
-    const {totalPq,nc,totalConformes,pontos}=calcularResultadoFinal();
-    const pct=Math.min(pontos,100);
-    document.getElementById('pct-final').textContent=pct.toFixed(1)+'%';
+    const {totalPq,nc,conformesExplicitos,naoFotografadas,totalConformes,pontos}=calcularResultadoFinal();
+    const pqsComFoto=new Set(resultados.filter(r=>r.pq_id>0).map(r=>parseInt(r.pq_id))).size;
+    document.getElementById('pct-final').textContent=pontos.toFixed(1)+'%';
     document.getElementById('pct-setor-label').textContent=setor;
-    document.getElementById('suc-total').textContent=resultados.length+'/'+totalPq;
+    document.getElementById('suc-total').textContent=pqsComFoto+'/'+totalPq;
     document.getElementById('suc-c').textContent=totalConformes;
     document.getElementById('suc-nc').textContent=nc;
     const elPts=document.getElementById('suc-pts');
-    if(elPts)elPts.textContent=pct.toFixed(1)+' pts';
+    if(elPts)elPts.textContent=pontos.toFixed(1)+' pts';
     irPara('tela-sucesso');setHeader('Auditoria salva!','');
   }catch(e){alert('Erro ao salvar: '+e.message);}
   finally{btn.disabled=false;btn.textContent='💾 Salvar auditoria';}
