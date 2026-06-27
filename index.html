@@ -411,31 +411,31 @@ const GROQ='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';
 const SETORES=['Corte','Usinagem','Coladeira','Pintura','Embalagem','Expedição','Almoxarifado','Manutenção','PCP/Qualidade','Caixa Aberta Astec','Pátio Externo','Protótipo','Furadeira','ADM'];
 
 const PQ=[
-  {id:1,s:'Seiri',t:'Há materiais, ferramentas ou objetos desnecessários no ambiente? (descarte com etiqueta vermelha)'},
-  {id:2,s:'Seiri',t:'Há excesso de materiais ou estoque além da necessidade imediata?'},
-  {id:3,s:'Seiri',t:'Existem itens obsoletos, danificados ou fora de padrão no local?'},
-  {id:4,s:'Seiri',t:'Há objetos em locais inadequados (trilhos, bancadas, corredores) prejudicando o fluxo?'},
-  {id:5,s:'Seiri',t:'Há desperdícios visíveis de recursos (água, ar, energia, matéria-prima)?'},
-  {id:6,s:'Seiton',t:'Áreas, postos e locais de armazenamento estão identificados e delimitados?'},
-  {id:7,s:'Seiton',t:'Materiais, ferramentas e estoques têm local definido com identificação visual?'},
+  {id:1,s:'Seiri',t:'Há materiais, ferramentas, documentos ou objetos desnecessários ou sem uso no ambiente? (itens para descarte identificados com etiqueta vermelha)'},
+  {id:2,s:'Seiri',t:'Há excesso de materiais ou estoque no setor além da necessidade imediata de uso? (itens deveriam estar no almoxarifado até o momento do uso)'},
+  {id:3,s:'Seiri',t:'Existem itens obsoletos, danificados ou fora de padrão no local de trabalho?'},
+  {id:4,s:'Seiri',t:'Há objetos ou materiais em locais inadequados (trilhos, bancadas, corredores), prejudicando o fluxo?'},
+  {id:5,s:'Seiri',t:'Há desperdícios visíveis de recursos (água, ar comprimido, energia, matéria-prima) associados a excesso ou mau uso?'},
+  {id:6,s:'Seiton',t:'As áreas, postos de trabalho, trilhos, circulação e locais de armazenamento estão claramente identificados e delimitados?'},
+  {id:7,s:'Seiton',t:'Materiais, produtos, ferramentas e estoques possuem local definido, identificação visual e limites estabelecidos?'},
   {id:8,s:'Seiton',t:'Ferramentas e materiais retornam ao local correto após o uso?'},
   {id:9,s:'Seiton',t:'Não há itens fora de lugar em bancadas, máquinas, corredores ou piso?'},
-  {id:10,s:'Seiton',t:'Objetos pessoais e itens não produtivos estão em locais apropriados?'},
-  {id:11,s:'Seiso',t:'Máquinas, equipamentos e ferramentas estão limpos e sem resíduos?'},
-  {id:12,s:'Seiso',t:'Bancadas, armários e superfícies estão limpos e conservados?'},
-  {id:13,s:'Seiso',t:'Lixeiras e utensílios de limpeza estão em bom estado e nos locais definidos?'},
-  {id:14,s:'Seiso',t:'Existe rotina de limpeza definida e cumprida (cronograma ou responsável)?'},
-  {id:15,s:'Seiso',t:'O piso e áreas ao redor das máquinas estão limpos e sem resíduos?'},
-  {id:16,s:'Seiketsu',t:'Existem padrões visuais definidos para organização e limpeza do setor?'},
-  {id:17,s:'Seiketsu',t:'Os colaboradores conhecem e seguem os padrões estabelecidos?'},
-  {id:18,s:'Seiketsu',t:'Processos estão padronizados e colaboradores treinados para executá-los?'},
-  {id:19,s:'Seiketsu',t:'O setor realiza auditorias periódicas de 5S conforme padrão?'},
-  {id:20,s:'Seiketsu',t:'Sinalização e identificação do setor seguem padrão visual estabelecido?'},
-  {id:21,s:'Shitsuke',t:'Colaboradores receberam treinamento em 5S e conhecem os padrões?'},
-  {id:22,s:'Shitsuke',t:'Há evidências de manutenção dos três primeiros sensos conforme padrão?'},
-  {id:23,s:'Shitsuke',t:'Regras e padrões do setor estão sendo cumpridos pelos colaboradores?'},
-  {id:24,s:'Shitsuke',t:'Existe plano de ação para tratar não conformidades, atualizado com responsáveis?'},
-  {id:25,s:'Shitsuke',t:'Gestão à vista (indicadores, auditorias, planos) está atualizada e acessível?'}
+  {id:10,s:'Seiton',t:'Objetos pessoais e itens não produtivos estão em locais apropriados e definidos?'},
+  {id:11,s:'Seiso',t:'Máquinas, equipamentos e ferramentas estão limpos e sem acúmulo de sujeira, pó ou resíduos?'},
+  {id:12,s:'Seiso',t:'Bancadas, armários, superfícies e materiais armazenados estão limpos e conservados?'},
+  {id:13,s:'Seiso',t:'O setor possui lixeiras e utensílios de limpeza suficientes, em bom estado e nos locais definidos?'},
+  {id:14,s:'Seiso',t:'Existe rotina de limpeza definida e cumprida (cronograma, checklist ou responsável)?'},
+  {id:15,s:'Seiso',t:'O piso, áreas ao redor das máquinas e locais de difícil acesso estão limpos e sem resíduos acumulados?'},
+  {id:16,s:'Seiketsu',t:'Existem padrões visuais definidos e atualizados para organização, identificação e limpeza do setor?'},
+  {id:17,s:'Seiketsu',t:'Os colaboradores conhecem e seguem os padrões estabelecidos (5S, organização, limpeza, identificação)?'},
+  {id:18,s:'Seiketsu',t:'Os processos e atividades do setor estão padronizados e os colaboradores treinados para executá-los?'},
+  {id:19,s:'Seiketsu',t:'O setor realiza auditorias periódicas de 5S conforme padrão definido?'},
+  {id:20,s:'Seiketsu',t:'A sinalização e identificação do setor (áreas, equipamentos, segurança, fluxos) seguem padrão visual estabelecido?'},
+  {id:21,s:'Shitsuke',t:'Os colaboradores receberam treinamento em 5S e conhecem os padrões aplicáveis ao setor?'},
+  {id:22,s:'Shitsuke',t:'Existem evidências de manutenção dos três primeiros sensos (utilização, ordenação e limpeza) conforme os padrões definidos?'},
+  {id:23,s:'Shitsuke',t:'As regras e padrões do setor (5S, organização, segurança e conduta) estão sendo cumpridos pelos colaboradores?'},
+  {id:24,s:'Shitsuke',t:'Existe plano de ação para tratar não conformidades e melhorias do 5S, atualizado e com responsáveis definidos?'},
+  {id:25,s:'Shitsuke',t:'A gestão à vista do setor (indicadores, auditorias, planos de ação, comunicados) está atualizada e acessível aos colaboradores?'}
 ];
 
 let SENSOS_CONFIG=[
@@ -744,7 +744,16 @@ async function analisarFoto(foto){
           {role:'system',content:'Você é auditor 5S de indústria moveleira. Responda SEMPRE em JSON válido, sem markdown, sem texto extra.'},
           {role:'user',content:[
           {type:'image_url',image_url:{url:'data:image/jpeg;base64,'+b64}},
-          {type:'text',text:'CONTEXTO: Você é um auditor 5S Master com 20 anos de experiência exclusiva em indústria moveleira seriada. Domina: (1) Seiri — identificação e descarte de itens com etiqueta vermelha, controle de estoque mínimo no posto; (2) Seiton — endereçamento de materiais, fita de demarcação, identificação visual de porta-pallets, gabaritos de ferramentas; (3) Seiso — limpeza de serras, tupia, coladeira de bordas, cabine de pintura, lixeiras identificadas por resíduo; (4) Seiketsu — padrões visuais, OPL, kamishibai, auditoria cruzada; (5) Shitsuke — disciplina, lista de verificação diária, gestão à vista. Processos que conhece: corte CNC e manual, usinagem de MDF/MDP, coladeira de bordas HKL, pintura UV e poliuretano, embalagem e expedição, almoxarifado PEPS, manutenção preditiva. ' +
+          {type:'text',text:'REGRAS CRÍTICAS DE AVALIAÇÃO 5S — INDÚSTRIA MOVELEIRA COLIBRI:\n' +
+'1. Seja RIGOROSO: só marque CONFORME se o item está CLARAMENTE em conformidade na foto.\n' +
+'2. Se há QUALQUER dúvida visível, marque NAO CONFORME.\n' +
+'3. NÃO avalie o que não é visível na foto — se não dá pra ver, não pode ser CONFORME.\n' +
+'4. Objetos pessoais (P10): só CONFORME se a foto mostra local organizado e designado.\n' +
+'5. Limpeza (P11-15): qualquer resíduo, pó, mancha visível = NAO CONFORME.\n' +
+'6. Organização (P6-9): qualquer item fora de demarcação ou sem identificação = NAO CONFORME.\n' +
+'7. Use as perguntas EXATAS do checklist FOR 102 para identificar o pq_id correto.\n' +
+'8. A justificativa deve descrever o que você VIU na foto, não o que deveria ter.\n\n' +
+'CONTEXTO: Auditor 5S Master, 20 anos em moveleira seriada (MDF/MDP, coladeira HKL, CNC, pintura UV). ' +
 'SETOR AUDITADO: '+setor+'. SENSOS ATIVOS: '+sensosAtivos.join(', ')+'. ' +
 'CRITÉRIOS DE AVALIAÇÃO:\n' +
 '- CONFORME: área organizada, limpa, identificada, sem excessos, padrões cumpridos\n' +
@@ -986,234 +995,265 @@ function gerarPDF(){
   try{
     const{jsPDF}=window.jspdf;
     const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-    const W=210,M=10;
+    const W=210,M=10,CW=W-M*2;
     const data=new Date().toLocaleDateString('pt-BR');
     const mes=new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
     const auditor=usuario?.nome||'';
 
-    // ── HELPERS ──────────────────────────────────────────
-    function hexRGB(hex){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return[r,g,b];}
-    function sRow(y,h,cor){doc.setFillColor(...hexRGB(cor));doc.rect(M,y,W-M*2,h,'F');}
-    function linha(y){doc.setDrawColor(200);doc.line(M,y,W-M,y);}
+    function h2r(hex){return[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];}
+    function addPage(){doc.addPage();return 15;}
 
-    // ── PÁGINA 1: CHECKLIST ───────────────────────────────
-    // Cabeçalho
-    doc.setFillColor(29,78,216);doc.rect(0,0,W,22,'F');
-    doc.setTextColor(255,255,255);
-    doc.setFontSize(14);doc.setFont('helvetica','bold');
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // PÁGINA 1: CHECKLIST
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Cabeçalho azul
+    doc.setFillColor(29,78,216);doc.rect(0,0,W,20,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(13);doc.setFont('helvetica','bold');
     doc.text('SISTEMA DE GESTÃO DA QUALIDADE',W/2,8,{align:'center'});
-    doc.setFontSize(11);
-    doc.text('CHECK LIST DE AUDITORIA 5S — FOR 102  |  Rev. 01',W/2,15,{align:'center'});
+    doc.setFontSize(9);doc.setFont('helvetica','normal');
+    doc.text('CHECK LIST DE AUDITORIA 5S   |   FOR 102   |   Rev. 01   |   Data: 02/03/2026',W/2,15,{align:'center'});
 
-    // Infos do cabeçalho
-    doc.setFillColor(239,246,255);doc.rect(M,23,W-M*2,14,'F');
-    doc.setDrawColor(29,78,216);doc.rect(M,23,W-M*2,14,'S');
-    doc.setTextColor(30,41,59);doc.setFontSize(9);doc.setFont('helvetica','bold');
-    doc.text('Setor: '+setor,M+3,29);
-    doc.text('Auditor: '+auditor,M+3,35);
-    doc.text('Data: '+data,W/2+10,29);
-    doc.text('Mês: '+mes,W/2+10,35);
+    // Info box
+    doc.setFillColor(239,246,255);doc.rect(M,21,CW,12,'F');
+    doc.setDrawColor(180,210,255);doc.rect(M,21,CW,12,'S');
+    doc.setTextColor(30,41,59);doc.setFontSize(8.5);doc.setFont('helvetica','bold');
+    doc.text('Setor: ',M+2,27);doc.setFont('helvetica','normal');doc.text(setor,M+14,27);
+    doc.text('Auditor: ',M+2,32);doc.setFont('helvetica','normal');doc.text(auditor,M+16,32);
+    doc.setFont('helvetica','bold');
+    doc.text('Data: ',W/2+5,27);doc.setFont('helvetica','normal');doc.text(data,W/2+16,27);
+    doc.text('Mês: ',W/2+5,32);doc.setFont('helvetica','normal');doc.text(mes,W/2+14,32);
 
     // Calcular pontuação
     const sensosAtivos=SENSOS_CONFIG.filter(s=>s.ativo).map(s=>s.nome);
     const pqAtivas=PQ.filter(p=>sensosAtivos.includes(p.s));
     const totalPq=pqAtivas.length||1;
-    const valPorPq=parseFloat((100/totalPq).toFixed(4));
+    const valPq=parseFloat((100/totalPq).toFixed(4));
 
-    // Agrupar resultados por pergunta_id
+    // Agrupar resultados por pq_id
     const resPorPq={};
-    resultados.forEach(r=>{if(r.pq_id)resPorPq[r.pq_id]=r;});
+    resultados.forEach(r=>{if(r.pq_id&&r.pq_id>0)resPorPq[r.pq_id]=r;});
 
-    let yPos=40;
+    let y=36;
     let pontuacaoTotal=0;
+    const subtotais={};
 
-    // Sensos
     const sensosDef=[
-      {nome:'UTILIZAÇÃO (SEIRI)',chave:'Seiri',cor:'#1d4ed8'},
-      {nome:'ORGANIZAÇÃO (SEITON)',chave:'Seiton',cor:'#0891b2'},
-      {nome:'LIMPEZA (SEISO)',chave:'Seiso',cor:'#16a34a'},
-      {nome:'PADRONIZAÇÃO (SEIKETSU)',chave:'Seiketsu',cor:'#7c3aed'},
-      {nome:'AUTODISCIPLINA (SHITSUKE)',chave:'Shitsuke',cor:'#db2777'},
+      {nome:'UTILIZAÇÃO (SEIRI)',chave:'Seiri',cor:'#1e40af'},
+      {nome:'ORGANIZAÇÃO (SEITON)',chave:'Seiton',cor:'#0e7490'},
+      {nome:'LIMPEZA (SEISO)',chave:'Seiso',cor:'#15803d'},
+      {nome:'PADRONIZAÇÃO (SEIKETSU)',chave:'Seiketsu',cor:'#6d28d9'},
+      {nome:'AUTODISCIPLINA (SHITSUKE)',chave:'Shitsuke',cor:'#be185d'},
     ];
+
+    // Larguras das colunas
+    const colN=7,colPQ=CW-colN-20-20-50,colNC=20,colC=20,colObs=50;
+    const xN=M,xPQ=M+colN,xNC=M+colN+colPQ,xC=xNC+colNC,xObs=xC+colC;
 
     sensosDef.forEach(senso=>{
       const pqs=PQ.filter(p=>p.s===senso.chave);
       const ativo=sensosAtivos.includes(senso.chave);
-      const alturaBloco=8+(pqs.length*8)+6;
+      if(y>270)y=addPage();
 
-      if(yPos+alturaBloco>285){doc.addPage();yPos=15;}
-
-      // Header do senso
-      const rgb=hexRGB(senso.cor);
-      doc.setFillColor(...rgb);
-      doc.rect(M,yPos,W-M*2,7,'F');
-      doc.setTextColor(255,255,255);doc.setFontSize(8);doc.setFont('helvetica','bold');
-      doc.text('VERIFICAÇÃO — SENSO DE '+senso.nome,M+3,yPos+4.8);
-      if(!ativo){doc.text('(SENSO NÃO AVALIADO)',W-M-3,yPos+4.8,{align:'right'});}
-      // Colunas header
-      doc.text('Não Conf.',W-M-42,yPos+4.8,{align:'center'});
-      doc.text('Conforme',W-M-26,yPos+4.8,{align:'center'});
-      doc.text('Observação',W-M-3,yPos+4.8,{align:'right'});
-      yPos+=7;
+      // Header senso
+      doc.setFillColor(...h2r(senso.cor));
+      doc.rect(M,y,CW,6.5,'F');
+      doc.setTextColor(255,255,255);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
+      doc.text('VERIFICAÇÃO — SENSO DE '+senso.nome,M+2,y+4.5);
+      if(!ativo){
+        doc.setFontSize(6.5);
+        doc.text('SENSO NÃO AVALIADO',xObs+colObs-2,y+4.5,{align:'right'});
+      }else{
+        doc.text('Não Conf.',xNC+colNC/2,y+4.5,{align:'center'});
+        doc.text('Conforme',xC+colC/2,y+4.5,{align:'center'});
+        doc.text('Observação',xObs+colObs/2,y+4.5,{align:'center'});
+      }
+      y+=6.5;
 
       let subtotal=0;
       pqs.forEach((pq,i)=>{
-        if(yPos+8>285){doc.addPage();yPos=15;}
         const res=resPorPq[pq.id];
         const isC=res&&res.resultado==='CONFORME';
         const isNC=res&&res.resultado==='NAO CONFORME';
-        const bg=i%2===0?'#f8fafc':'#ffffff';
-        doc.setFillColor(...hexRGB(bg));
-        doc.rect(M,yPos,W-M*2,7.5,'F');
-        doc.setDrawColor(220);doc.rect(M,yPos,W-M*2,7.5,'S');
 
-        // Nº
-        doc.setTextColor(30,41,59);doc.setFontSize(7.5);doc.setFont('helvetica','normal');
-        doc.text(String(pq.id),M+2,yPos+5);
+        // Altura dinâmica baseada no texto
+        const pqLines=doc.splitTextToSize(pq.t,colPQ-2);
+        const obsText=res?(res.justificativa||''):'';
+        const obsLines=doc.splitTextToSize(obsText,colObs-2);
+        const rowH=Math.max(pqLines.length*3.8+2,obsLines.length*3.2+2,6);
 
-        // Texto da pergunta
-        const pqLines=doc.splitTextToSize(pq.t,W-M*2-58);
-        doc.text(pqLines[0],M+8,yPos+4.5);
+        if(y+rowH>285)y=addPage();
 
-        // Marcadores
-        if(isNC){
-          doc.setTextColor(220,38,38);doc.setFont('helvetica','bold');
-          doc.text('X',W-M-43,yPos+5,{align:'center'});
+        // Fundo alternado
+        doc.setFillColor(i%2===0?248:255,i%2===0?250:255,i%2===0?252:255);
+        doc.rect(M,y,CW,rowH,'F');
+        doc.setDrawColor(220,220,220);doc.rect(M,y,CW,rowH,'S');
+
+        // Número
+        doc.setTextColor(100,116,139);doc.setFontSize(7);doc.setFont('helvetica','normal');
+        doc.text(String(pq.id),xN+colN/2,y+rowH/2+1,{align:'center'});
+
+        // Pergunta
+        doc.setTextColor(30,41,59);doc.setFontSize(7);
+        doc.text(pqLines,xPQ+1,y+3.5);
+
+        if(ativo){
+          if(isNC){
+            doc.setFont('helvetica','bold');doc.setTextColor(220,38,38);doc.setFontSize(9);
+            doc.text('X',xNC+colNC/2,y+rowH/2+1.5,{align:'center'});
+          }
+          if(isC){
+            doc.setFont('helvetica','bold');doc.setTextColor(22,163,74);doc.setFontSize(9);
+            doc.text('X',xC+colC/2,y+rowH/2+1.5,{align:'center'});
+            subtotal+=valPq;pontuacaoTotal+=valPq;
+          }
+          if(!res){
+            doc.setFont('helvetica','normal');doc.setTextColor(180);doc.setFontSize(7);
+            doc.text('—',xNC+colNC+colC/2,y+rowH/2+1,{align:'center'});
+          }
+          // Observação
+          if(obsLines.length>0&&obsText){
+            doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);doc.setFontSize(6);
+            doc.text(obsLines.slice(0,3),xObs+1,y+3.5);
+          }
         }
-        if(isC){
-          doc.setTextColor(22,163,74);doc.setFont('helvetica','bold');
-          doc.text('X',W-M-27,yPos+5,{align:'center'});
-          if(ativo){subtotal+=valPorPq;pontuacaoTotal+=valPorPq;}
-        }
-        if(!res&&ativo){
-          doc.setTextColor(150);doc.setFont('helvetica','italic');
-          doc.text('—',W-M-35,yPos+5,{align:'center'});
-        }
-
-        // Observação
-        if(res&&res.justificativa){
-          doc.setTextColor(80);doc.setFont('helvetica','normal');doc.setFontSize(6.5);
-          const obsLines=doc.splitTextToSize(res.justificativa,42);
-          doc.text(obsLines[0],W-M-2,yPos+4,{align:'right'});
-        }
-
-        doc.setTextColor(30,41,59);
-        yPos+=7.5;
+        doc.setTextColor(30,41,59);doc.setFont('helvetica','normal');
+        y+=rowH;
       });
 
       // Total do senso
-      if(yPos+6>285){doc.addPage();yPos=15;}
-      doc.setFillColor(241,245,249);doc.rect(M,yPos,W-M*2,6,'F');
-      doc.setDrawColor(200);doc.rect(M,yPos,W-M*2,6,'S');
-      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(30,41,59);
-      doc.text('Total do Senso',M+3,yPos+4.2);
-      const pts=parseFloat(subtotal.toFixed(2));
-      const cor2=pts>0?[22,163,74]:[220,38,38];
-      doc.setTextColor(...cor2);
-      doc.text(ativo?pts.toFixed(2)+' pts':'Não avaliado',W-M-3,yPos+4.2,{align:'right'});
-      yPos+=9;
+      if(y>285)y=addPage();
+      doc.setFillColor(241,245,249);doc.rect(M,y,CW,5.5,'F');
+      doc.setDrawColor(180);doc.rect(M,y,CW,5.5,'S');
+      doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(30,41,59);
+      doc.text('Total do Senso',M+2,y+3.8);
+      subtotais[senso.chave]=parseFloat(subtotal.toFixed(2));
+      const pts=subtotais[senso.chave];
+      doc.setTextColor(pts>0?22:ativo?220:150,pts>0?163:ativo?38:150,pts>0?74:ativo?38:150);
+      doc.text(ativo?(pts.toFixed(2)+' pts'):'Não avaliado',M+CW-2,y+3.8,{align:'right'});
+      y+=8;
     });
 
-    // PONTUAÇÃO TOTAL
-    if(yPos+12>285){doc.addPage();yPos=15;}
-    doc.setFillColor(29,78,216);doc.rect(M,yPos,W-M*2,10,'F');
-    doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(10);
-    doc.text('PONTUAÇÃO TOTAL DO SETOR NO MÊS',M+3,yPos+6.5);
+    // Pontuação total
+    if(y>278)y=addPage();
+    doc.setFillColor(29,78,216);doc.rect(M,y,CW,8,'F');
+    doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(9);
+    doc.text('PONTUAÇÃO TOTAL DO SETOR NO MÊS',M+2,y+5.5);
     const pctFinal=Math.min(parseFloat(pontuacaoTotal.toFixed(1)),100);
-    const corFinal=pctFinal>=80?[74,222,128]:pctFinal>=50?[251,191,36]:[252,165,165];
-    doc.setTextColor(...corFinal);doc.setFontSize(13);
-    doc.text(pctFinal.toFixed(1)+' / 100',W-M-3,yPos+6.5,{align:'right'});
-    yPos+=14;
+    const corFt=pctFinal>=80?[74,222,128]:pctFinal>=50?[251,191,36]:[252,165,165];
+    doc.setTextColor(...corFt);doc.setFontSize(11);
+    doc.text(pctFinal.toFixed(1)+' / 100 pts',M+CW-2,y+5.5,{align:'right'});
+    y+=12;
+
+    // Resumo por senso
+    if(y>265)y=addPage();
+    doc.setFillColor(248,250,252);doc.rect(M,y,CW,6,'F');
+    doc.setDrawColor(200);doc.rect(M,y,CW,6,'S');
+    doc.setTextColor(30,41,59);doc.setFont('helvetica','bold');doc.setFontSize(7);
+    doc.text('RESUMO POR SENSO',M+2,y+4);y+=6;
+
+    const sensoCores={Seiri:'#1e40af',Seiton:'#0e7490',Seiso:'#15803d',Seiketsu:'#6d28d9',Shitsuke:'#be185d'};
+    const maxPts=Math.max(...Object.values(subtotais),1);
+    const bW=(CW-4)/5;
+    Object.entries(subtotais).forEach(([s,pts],i)=>{
+      if(y+22>285)y=addPage();
+      const bx=M+2+i*bW;
+      const pct2=Math.min((pts/100)*18,18);
+      const cor=h2r(sensoCores[s]||'#1e40af');
+      // Barra vertical
+      doc.setFillColor(240,240,240);doc.rect(bx+bW/2-3,y,6,18,'F');
+      if(pct2>0){doc.setFillColor(...cor);doc.rect(bx+bW/2-3,y+18-pct2,6,pct2,'F');}
+      doc.setFontSize(6);doc.setTextColor(...cor);doc.setFont('helvetica','bold');
+      doc.text(pts.toFixed(1),bx+bW/2,y+20.5,{align:'center'});
+      doc.setTextColor(100);doc.setFont('helvetica','normal');
+      doc.text(s.slice(0,7),bx+bW/2,y+24,{align:'center'});
+    });
+    y+=28;
 
     // Assinaturas
-    if(yPos+20>285){doc.addPage();yPos=15;}
-    doc.setTextColor(30,41,59);doc.setFontSize(8);doc.setFont('helvetica','normal');
-    doc.line(M,yPos+12,M+55,yPos+12);
-    doc.line(W/2-10,yPos+12,W/2+45,yPos+12);
-    doc.line(W-M-55,yPos+12,W-M,yPos+12);
-    doc.text('Auditor',M+20,yPos+16);
-    doc.text('Multiplicador do Setor',W/2+5,yPos+16);
-    doc.text('Encarregado do Setor',W-M-35,yPos+16);
+    if(y>272)y=addPage();
+    doc.setDrawColor(100);
+    doc.line(M,y+10,M+50,y+10);
+    doc.line(W/2-25,y+10,W/2+25,y+10);
+    doc.line(W-M-50,y+10,W-M,y+10);
+    doc.setFontSize(7);doc.setTextColor(80);doc.setFont('helvetica','normal');
+    doc.text('Auditor',M+25,y+14,{align:'center'});
+    doc.text('Multiplicador do Setor',W/2,y+14,{align:'center'});
+    doc.text('Encarregado do Setor',W-M-25,y+14,{align:'center'});
 
-    // ── PÁGINAS DE EVIDÊNCIAS ─────────────────────────────
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // PÁGINAS DE EVIDÊNCIAS
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     if(resultados.length>0){
       doc.addPage();
-
-      // Header evidências
       doc.setFillColor(29,78,216);doc.rect(0,0,W,16,'F');
-      doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(12);
-      doc.text('REGISTRO FOTOGRÁFICO DE EVIDÊNCIAS',W/2,10,{align:'center'});
-      doc.setFontSize(8);doc.setFont('helvetica','normal');
-      doc.text('Setor: '+setor+'  |  Data: '+data+'  |  Auditor: '+auditor,W/2,15,{align:'center'});
+      doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(11);
+      doc.text('REGISTRO FOTOGRÁFICO DE EVIDÊNCIAS',W/2,9,{align:'center'});
+      doc.setFontSize(7.5);doc.setFont('helvetica','normal');
+      doc.text('Setor: '+setor+'  |  Data: '+data+'  |  Auditor: '+auditor,W/2,14,{align:'center'});
 
-      let ey=20;
-      const fW=85,fH=55,gap=5;
+      let ey=19;
+      const fW=88,fH=52,gap=6;
       const col1=M,col2=M+fW+gap;
+      const cardH=fH+26;
 
-      // Agrupar por senso
-      const sensoOrdem=['Seiri','Seiton','Seiso','Seiketsu','Shitsuke'];
-      sensoOrdem.forEach(sNome=>{
-        const rsSenso=resultados.filter(r=>r.senso===sNome&&r.senso!=='Erro');
+      sensosDef.forEach(senso=>{
+        const rsSenso=resultados.filter(r=>(r.senso||'')==senso.chave&&r.pq_id>0);
         if(!rsSenso.length)return;
 
-        // Header do senso nas evidências
         if(ey+10>285){doc.addPage();ey=15;}
-        const sd=sensosDef.find(s=>s.chave===sNome);
-        doc.setFillColor(...hexRGB(sd?.cor||'#1d4ed8'));
-        doc.rect(M,ey,W-M*2,7,'F');
-        doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(8);
-        doc.text('SENSO DE '+sd?.nome||sNome,M+3,ey+4.8);
-        ey+=9;
+        doc.setFillColor(...h2r(senso.cor));
+        doc.rect(M,ey,CW,5.5,'F');
+        doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(7);
+        doc.text('SENSO DE '+senso.nome,M+2,ey+3.8);
+        ey+=7;
 
         rsSenso.forEach((r,ri)=>{
           const col=ri%2===0?col1:col2;
-          if(ri%2===0&&ey+fH+30>285){doc.addPage();ey=15;}
+          if(ri%2===0&&ri>0&&ey+cardH>285){doc.addPage();ey=15;}
+          if(ri%2===0&&ri===0&&ey+cardH>285){doc.addPage();ey=15;}
 
           const isC=r.resultado==='CONFORME';
-          const pq=PQ.find(p=>p.id===r.pq_id);
-
-          // Card da evidência
-          const cBg=isC?'#dcfce7':'#fee2e2';
+          const pq=PQ.find(p=>p.id===parseInt(r.pq_id));
+          const cBg=isC?'#f0fdf4':'#fff5f5';
           const cBd=isC?'#16a34a':'#dc2626';
-          doc.setFillColor(...hexRGB(cBg));
-          doc.rect(col,ey,fW,fH+28,'F');
-          doc.setDrawColor(...hexRGB(cBd));
-          doc.rect(col,ey,fW,fH+28,'S');
 
-          // Badge resultado
-          doc.setFillColor(...hexRGB(cBd));
-          doc.rect(col,ey,fW,6,'F');
-          doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(7);
-          doc.text((isC?'✓ CONFORME':'✗ NÃO CONFORME')+'  |  P'+r.pq_id+'  |  '+r.senso,col+fW/2,ey+4,{align:'center'});
+          doc.setFillColor(...h2r(cBg));doc.rect(col,ey,fW,cardH,'F');
+          doc.setDrawColor(...h2r(cBd));doc.rect(col,ey,fW,cardH,'S');
+
+          // Badge topo
+          doc.setFillColor(...h2r(cBd));doc.rect(col,ey,fW,5,'F');
+          doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(6.5);
+          const badge=(isC?'✓ CONFORME':'✗ NÃO CONFORME')+' — P'+(r.pq_id||'?')+' — '+senso.chave;
+          doc.text(badge,col+fW/2,ey+3.5,{align:'center'});
 
           // Foto
-          try{
-            doc.addImage(r.foto,'JPEG',col+1,ey+7,fW-2,fH-2,'','FAST');
-          }catch(e){}
+          try{doc.addImage(r.foto,'JPEG',col+1,ey+6,fW-2,fH,'','FAST');}catch(e){}
 
           // Pergunta
-          doc.setTextColor(30,41,59);doc.setFont('helvetica','bold');doc.setFontSize(6.5);
           const pqTxt=pq?pq.t:'Avaliação geral';
-          const pqLines=doc.splitTextToSize(pqTxt,fW-4);
-          doc.text(pqLines.slice(0,2),col+2,ey+fH+9);
+          doc.setTextColor(30,41,59);doc.setFont('helvetica','bold');doc.setFontSize(5.8);
+          const pqL=doc.splitTextToSize(pqTxt,fW-4);
+          doc.text(pqL.slice(0,2),col+2,ey+fH+9);
 
           // Justificativa
-          doc.setFont('helvetica','normal');doc.setFontSize(6);doc.setTextColor(80);
-          const jLines=doc.splitTextToSize(r.justificativa||'',fW-4);
-          doc.text(jLines.slice(0,2),col+2,ey+fH+16);
+          if(r.justificativa){
+            doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(60,60,60);
+            const jL=doc.splitTextToSize(r.justificativa,fW-4);
+            doc.text(jL.slice(0,2),col+2,ey+fH+15);
+          }
 
           // Sugestão (só NC)
           if(!isC&&r.sugestao){
-            doc.setTextColor(146,64,14);doc.setFont('helvetica','italic');doc.setFontSize(5.5);
-            const sLines=doc.splitTextToSize('💡 '+r.sugestao,fW-4);
-            doc.text(sLines.slice(0,2),col+2,ey+fH+22);
+            doc.setFillColor(254,243,199);doc.rect(col+1,ey+fH+19,fW-2,6,'F');
+            doc.setTextColor(146,64,14);doc.setFont('helvetica','italic');doc.setFontSize(5.2);
+            const sL=doc.splitTextToSize('Melhoria: '+r.sugestao,fW-6);
+            doc.text(sL.slice(0,2),col+3,ey+fH+22.5);
           }
 
-          if(ri%2===1)ey+=fH+31;
+          if(ri%2===1)ey+=cardH+4;
         });
-        // Se ímpar, avança linha
-        if(rsSenso.length%2!==0)ey+=fH+31;
-        ey+=4;
+        if(rsSenso.length%2!==0)ey+=cardH+4;
+        ey+=3;
       });
     }
 
@@ -1221,8 +1261,8 @@ function gerarPDF(){
     const pages=doc.internal.getNumberOfPages();
     for(let p=1;p<=pages;p++){
       doc.setPage(p);
-      doc.setFontSize(7);doc.setTextColor(150);doc.setFont('helvetica','normal');
-      doc.text('FOR 102 — Auditoria 5S Colibri Móveis — '+setor+' — '+data+' | Pág. '+p+'/'+pages,W/2,293,{align:'center'});
+      doc.setFontSize(6.5);doc.setTextColor(160);doc.setFont('helvetica','normal');
+      doc.text('FOR 102 — Colibri Indústria Moveleira — Auditoria 5S — '+setor+' — '+data+' | Pág. '+p+'/'+pages,W/2,295,{align:'center'});
     }
 
     doc.save('Auditoria_5S_'+setor+'_'+data.replace(/\//g,'-')+'.pdf');
