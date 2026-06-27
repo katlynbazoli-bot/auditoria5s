@@ -813,17 +813,26 @@ function calcularPontuacao(){
   return{totalPq,valorPorPergunta};
 }
 
-function atualizarContadores(){
-  const total=resultados.length;
-  const c=resultados.filter(r=>r.resultado==='CONFORME').length;
+function calcularResultadoFinal(){
+  // Lógica: perguntas NAO CONFORME = 0pts; todas as demais (conformes + não fotografadas) = pts
+  const {totalPq,valorPorPergunta}=calcularPontuacao();
   const nc=resultados.filter(r=>r.resultado==='NAO CONFORME').length;
-  const {valorPorPergunta}=calcularPontuacao();
-  const pontos=(c*valorPorPergunta).toFixed(1);
+  const conformesExplicitos=resultados.filter(r=>r.resultado==='CONFORME').length;
+  // Perguntas não fotografadas são consideradas CONFORME
+  const naoFotografadas=Math.max(0,totalPq-resultados.length);
+  const totalConformes=conformesExplicitos+naoFotografadas;
+  const pontos=parseFloat((totalConformes*valorPorPergunta).toFixed(1));
+  return{totalPq,nc,conformesExplicitos,naoFotografadas,totalConformes,pontos,valorPorPergunta};
+}
+
+function atualizarContadores(){
+  const {totalPq,nc,totalConformes,pontos}=calcularResultadoFinal();
+  const total=resultados.length;
   const el=id=>document.getElementById(id);
-  if(el('cnt-total'))el('cnt-total').textContent=total;
-  if(el('cnt-c'))el('cnt-c').textContent=c;
+  if(el('cnt-total'))el('cnt-total').textContent=total+'/'+totalPq;
+  if(el('cnt-c'))el('cnt-c').textContent=totalConformes;
   if(el('cnt-nc'))el('cnt-nc').textContent=nc;
-  if(el('cnt-pts'))el('cnt-pts').textContent=pontos;
+  if(el('cnt-pts'))el('cnt-pts').textContent=Math.min(pontos,100).toFixed(1);
 }
 
 function renderizarResultados(){
@@ -971,18 +980,15 @@ async function salvarAuditoria(){
         })
       });
     }
-    const c=resultados.filter(r=>r.resultado==='CONFORME').length;
-    const nc=resultados.filter(r=>r.resultado==='NAO CONFORME').length;
-    const {valorPorPergunta,totalPq}=calcularPontuacao();
-    const pontos=parseFloat((c*valorPorPergunta).toFixed(1));
+    const {totalPq,nc,totalConformes,pontos}=calcularResultadoFinal();
     const pct=Math.min(pontos,100);
     document.getElementById('pct-final').textContent=pct.toFixed(1)+'%';
     document.getElementById('pct-setor-label').textContent=setor;
-    document.getElementById('suc-total').textContent=resultados.length;
-    document.getElementById('suc-c').textContent=c;
+    document.getElementById('suc-total').textContent=resultados.length+'/'+totalPq;
+    document.getElementById('suc-c').textContent=totalConformes;
     document.getElementById('suc-nc').textContent=nc;
     const elPts=document.getElementById('suc-pts');
-    if(elPts)elPts.textContent=pontos.toFixed(1)+' pts';
+    if(elPts)elPts.textContent=pct.toFixed(1)+' pts';
     irPara('tela-sucesso');setHeader('Auditoria salva!','');
   }catch(e){alert('Erro ao salvar: '+e.message);}
   finally{btn.disabled=false;btn.textContent='💾 Salvar auditoria';}
@@ -1023,7 +1029,7 @@ function gerarPDF(){
     doc.text('Data: ',W/2+5,27);doc.setFont('helvetica','normal');doc.text(data,W/2+16,27);
     doc.text('Mês: ',W/2+5,32);doc.setFont('helvetica','normal');doc.text(mes,W/2+14,32);
 
-    // Calcular pontuação
+    // Calcular pontuação — perguntas não fotografadas = CONFORME por padrão
     const sensosAtivos=SENSOS_CONFIG.filter(s=>s.ativo).map(s=>s.nome);
     const pqAtivas=PQ.filter(p=>sensosAtivos.includes(p.s));
     const totalPq=pqAtivas.length||1;
@@ -1031,7 +1037,10 @@ function gerarPDF(){
 
     // Agrupar resultados por pq_id
     const resPorPq={};
-    resultados.forEach(r=>{if(r.pq_id&&r.pq_id>0)resPorPq[r.pq_id]=r;});
+    resultados.forEach(r=>{if(r.pq_id&&r.pq_id>0)resPorPq[parseInt(r.pq_id)]=r;});
+
+    // Perguntas sem foto = CONFORME por padrão
+    const ncIds=new Set(resultados.filter(r=>r.resultado==='NAO CONFORME').map(r=>parseInt(r.pq_id)));
 
     let y=36;
     let pontuacaoTotal=0;
@@ -1097,16 +1106,20 @@ function gerarPDF(){
         doc.text(pqLines,xPQ+1,y+3.5);
 
         if(ativo){
+          const semFoto=!res;
+          const conformePadrao=semFoto&&!ncIds.has(pq.id);
           if(isNC){
             doc.setFont('helvetica','bold');doc.setTextColor(220,38,38);doc.setFontSize(9);
             doc.text('X',xNC+colNC/2,y+rowH/2+1.5,{align:'center'});
           }
-          if(isC){
-            doc.setFont('helvetica','bold');doc.setTextColor(22,163,74);doc.setFontSize(9);
+          if(isC||conformePadrao){
+            doc.setFont('helvetica','bold');
+            doc.setTextColor(isC?22:120,isC?163:180,isC?74:120);
+            doc.setFontSize(9);
             doc.text('X',xC+colC/2,y+rowH/2+1.5,{align:'center'});
             subtotal+=valPq;pontuacaoTotal+=valPq;
           }
-          if(!res){
+          if(semFoto&&!conformePadrao){
             doc.setFont('helvetica','normal');doc.setTextColor(180);doc.setFontSize(7);
             doc.text('—',xNC+colNC+colC/2,y+rowH/2+1,{align:'center'});
           }
