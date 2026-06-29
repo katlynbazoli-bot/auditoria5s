@@ -814,38 +814,64 @@ function calcularPontuacao(){
 }
 
 function calcularResultadoFinal(){
-  // Lógica correta: avalia por PERGUNTA, não por foto
-  // Uma pergunta pode ter várias fotos — se qualquer uma for NC, a pergunta é NC
-  // Perguntas sem nenhuma foto = CONFORME por padrão
+  // LÓGICA DE PONTUAÇÃO:
+  // - Cada pergunta ativa vale 100/totalPq pontos
+  // - Se uma foto NC foi vinculada a uma pergunta (pq_id válido) → pergunta = NC = 0 pts
+  // - Se uma pergunta não teve nenhuma foto → CONFORME por padrão = pts
+  // - Fotos NC com pq_id=0 (erro de IA) contam como NC genérico
+  // - O total de NC = max(ncs por pq_id, total de fotos NC com pq_id=0)
+
   const sensosAtivos=SENSOS_CONFIG.filter(s=>s.ativo).map(s=>s.nome);
   const pqAtivas=PQ.filter(p=>sensosAtivos.includes(p.s));
   const totalPq=pqAtivas.length||1;
   const valorPorPergunta=parseFloat((100/totalPq).toFixed(4));
 
-  // Agrupar resultados por pq_id — se alguma foto for NC, a pergunta é NC
+  // Passo 1: agrupar por pq_id (só ids válidos > 0)
   const avaliacaoPorPq={};
   resultados.forEach(r=>{
     const id=parseInt(r.pq_id)||0;
-    if(id===0)return;
+    if(id<1)return;
     if(!avaliacaoPorPq[id])avaliacaoPorPq[id]='CONFORME';
     if(r.resultado==='NAO CONFORME')avaliacaoPorPq[id]='NAO CONFORME';
   });
 
-  let nc=0,conformesExplicitos=0,naoFotografadas=0;
+  // Passo 2: contar NCs por pergunta identificada
+  let nc=0, conformesExplicitos=0, naoFotografadas=0;
   pqAtivas.forEach(pq=>{
-    if(!avaliacaoPorPq[pq.id]){
-      // Sem foto = conforme por padrão
-      naoFotografadas++;
-    } else if(avaliacaoPorPq[pq.id]==='NAO CONFORME'){
-      nc++;
+    const aval=avaliacaoPorPq[pq.id];
+    if(!aval){
+      naoFotografadas++;        // sem foto = conforme por padrão
+    } else if(aval==='NAO CONFORME'){
+      nc++;                     // pergunta identificada como NC
     } else {
-      conformesExplicitos++;
+      conformesExplicitos++;    // pergunta identificada como C
     }
   });
 
-  const totalConformes=conformesExplicitos+naoFotografadas;
-  const pontos=parseFloat(Math.min((totalConformes*valorPorPergunta),100).toFixed(1));
-  return{totalPq,nc,conformesExplicitos,naoFotografadas,totalConformes,pontos,valorPorPergunta};
+  // Passo 3: fotos NC com pq_id=0 (erro IA) — deduzir da pontuação
+  // Cada foto NC sem pergunta identificada reduz 1 da contagem de conformes padrão
+  const fotosNCSemPq=resultados.filter(r=>{
+    const id=parseInt(r.pq_id)||0;
+    return r.resultado==='NAO CONFORME'&&id<1;
+  }).length;
+
+  // Reduzir conformes padrão pelas fotos NC sem pq (até o limite de naoFotografadas)
+  const reducao=Math.min(fotosNCSemPq,naoFotografadas);
+  const naoFotografadasEfetivas=naoFotografadas-reducao;
+  const ncTotal=nc+reducao;
+
+  const totalConformes=conformesExplicitos+naoFotografadasEfetivas;
+  const pontos=parseFloat(Math.min((totalConformes*valorPorPergunta),100).toFixed(2));
+
+  return{
+    totalPq,
+    nc:ncTotal,
+    conformesExplicitos,
+    naoFotografadas:naoFotografadasEfetivas,
+    totalConformes,
+    pontos,
+    valorPorPergunta
+  };
 }
 
 function atualizarContadores(){
@@ -1136,57 +1162,68 @@ function gerarPDF(){
 
       let subtotal=0;
       pqs.forEach((pq,i)=>{
-        const res=resPorPq[pq.id];
-        // isC/isNC baseados no resultado agregado da pergunta
-        const isC=avalPorPq[pq.id]==='CONFORME';
-        const isNC=avalPorPq[pq.id]==='NAO CONFORME';
+        // ── Determinar resultado desta pergunta ──────────────────
+        // avalPorPq[pq.id]: 'CONFORME', 'NAO CONFORME', ou undefined (sem foto)
+        const avaliacao=avalPorPq[pq.id];
+        const semFoto=avaliacao===undefined;
+        const isNC=avaliacao==='NAO CONFORME';
+        const isC=avaliacao==='CONFORME';
+        const isConformePadrao=semFoto; // sem foto = conforme por padrão
 
-        // Altura dinâmica baseada no texto
-        const pqLines=doc.splitTextToSize(pq.t,colPQ-2);
+        // Observação: pegar do resultado mais relevante
+        const res=resPorPq[pq.id];
         const obsText=res?(res.justificativa||''):'';
+
+        // ── Altura dinâmica ───────────────────────────────────────
+        const pqLines=doc.splitTextToSize(pq.t,colPQ-2);
         const obsLines=doc.splitTextToSize(obsText,colObs-2);
-        const rowH=Math.max(pqLines.length*3.8+2,obsLines.length*3.2+2,6);
+        const rowH=Math.max(pqLines.length*3.8+2,obsLines.length*3.2+2,6.5);
 
         if(y+rowH>285)y=addPage();
 
-        // Fundo alternado
-        doc.setFillColor(i%2===0?248:255,i%2===0?250:255,i%2===0?252:255);
+        // ── Fundo alternado ───────────────────────────────────────
+        const bgR=i%2===0?248:255, bgG=i%2===0?250:255, bgB=i%2===0?252:255;
+        doc.setFillColor(bgR,bgG,bgB);
         doc.rect(M,y,CW,rowH,'F');
-        doc.setDrawColor(220,220,220);doc.rect(M,y,CW,rowH,'S');
+        doc.setDrawColor(220,220,220);
+        doc.rect(M,y,CW,rowH,'S');
 
-        // Número
+        // ── Número da pergunta ────────────────────────────────────
         doc.setTextColor(100,116,139);doc.setFontSize(7);doc.setFont('helvetica','normal');
         doc.text(String(pq.id),xN+colN/2,y+rowH/2+1,{align:'center'});
 
-        // Pergunta
-        doc.setTextColor(30,41,59);doc.setFontSize(7);
+        // ── Texto da pergunta ─────────────────────────────────────
+        doc.setTextColor(30,41,59);doc.setFontSize(7);doc.setFont('helvetica','normal');
         doc.text(pqLines,xPQ+1,y+3.5);
 
         if(ativo){
-          // Avalição por pq_id (mesma lógica do app)
-          const avalPq=avalPorPq[pq.id]; // 'CONFORME', 'NAO CONFORME', ou undefined (sem foto)
-          const semFoto=!avalPq;
-          const isNC_pq=avalPq==='NAO CONFORME';
-          const isC_pq=avalPq==='CONFORME'||semFoto; // sem foto = conforme por padrão
-
-          if(isNC_pq){
-            doc.setFont('helvetica','bold');doc.setTextColor(220,38,38);doc.setFontSize(9);
+          if(isNC){
+            // NÃO CONFORME: X vermelho
+            doc.setFont('helvetica','bold');doc.setTextColor(220,38,38);doc.setFontSize(10);
             doc.text('X',xNC+colNC/2,y+rowH/2+1.5,{align:'center'});
-          }
-          if(isC_pq){
-            doc.setFont('helvetica','bold');
-            // Verde escuro se fotografado, cinza se padrão
-            doc.setTextColor(semFoto?120:22,semFoto?180:163,semFoto?120:74);
-            doc.setFontSize(9);
+          } else if(isC){
+            // CONFORME fotografado: X verde escuro
+            doc.setFont('helvetica','bold');doc.setTextColor(22,163,74);doc.setFontSize(10);
+            doc.text('X',xC+colC/2,y+rowH/2+1.5,{align:'center'});
+            subtotal+=valPq;pontuacaoTotal+=valPq;
+          } else if(isConformePadrao){
+            // Conforme por padrão (sem foto): X cinza
+            doc.setFont('helvetica','bold');doc.setTextColor(120,180,120);doc.setFontSize(10);
             doc.text('X',xC+colC/2,y+rowH/2+1.5,{align:'center'});
             subtotal+=valPq;pontuacaoTotal+=valPq;
           }
-          // Observação
-          if(obsLines.length>0&&obsText){
+
+          // ── Observação ────────────────────────────────────────
+          if(obsText&&obsLines.length>0){
             doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);doc.setFontSize(6);
             doc.text(obsLines.slice(0,3),xObs+1,y+3.5);
           }
+        } else {
+          // Senso não avaliado
+          doc.setTextColor(150);doc.setFont('helvetica','italic');doc.setFontSize(6.5);
+          doc.text('—',xNC+colNC+colC/2,y+rowH/2+1,{align:'center'});
         }
+
         doc.setTextColor(30,41,59);doc.setFont('helvetica','normal');
         y+=rowH;
       });
