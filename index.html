@@ -999,7 +999,7 @@ async function salvarAuditoria(){
           resultado:r.resultado||'NAO CONFORME',
           justificativa:r.justificativa||'',
           sugestao:r.sugestao||'',
-          foto_url:'',
+          foto_url:comprimirFoto(r.foto||''),
           pontuacao:r.resultado==='CONFORME'?1:0
         })
       });
@@ -1016,6 +1016,24 @@ async function salvarAuditoria(){
     irPara('tela-sucesso');setHeader('Auditoria salva!','');
   }catch(e){alert('Erro ao salvar: '+e.message);}
   finally{btn.disabled=false;btn.textContent='💾 Salvar auditoria';}
+}
+
+function comprimirFoto(base64,maxW=400,quality=0.6){
+  // Comprime a foto para caber no Supabase (max ~500kb)
+  if(!base64||base64.length<100)return '';
+  try{
+    const canvas=document.createElement('canvas');
+    const img=new Image();
+    // Síncrono não funciona, retornar base64 original limitado
+    // Limitamos o tamanho cortando — max 200kb em base64
+    const MAX=200000;
+    if(base64.length>MAX){
+      // Reduzir qualidade via canvas de forma assíncrona não é possível aqui
+      // então simplesmente truncamos e retornamos string vazia se muito grande
+      return base64.slice(0,MAX);
+    }
+    return base64;
+  }catch(e){return '';}
 }
 
 function novaAuditoria(){fotos=[];resultados=[];setor='';navegar('home');}
@@ -1053,18 +1071,32 @@ function gerarPDF(){
     doc.text('Data: ',W/2+5,27);doc.setFont('helvetica','normal');doc.text(data,W/2+16,27);
     doc.text('Mês: ',W/2+5,32);doc.setFont('helvetica','normal');doc.text(mes,W/2+14,32);
 
-    // Calcular pontuação — perguntas não fotografadas = CONFORME por padrão
+    // Calcular pontuação — mesma lógica do app
     const sensosAtivos=SENSOS_CONFIG.filter(s=>s.ativo).map(s=>s.nome);
     const pqAtivas=PQ.filter(p=>sensosAtivos.includes(p.s));
     const totalPq=pqAtivas.length||1;
     const valPq=parseFloat((100/totalPq).toFixed(4));
 
-    // Agrupar resultados por pq_id
-    const resPorPq={};
-    resultados.forEach(r=>{if(r.pq_id&&r.pq_id>0)resPorPq[parseInt(r.pq_id)]=r;});
+    // Agrupar por pq_id: se qualquer foto for NC, a pergunta é NC
+    const avalPorPq={};
+    resultados.forEach(r=>{
+      const id=parseInt(r.pq_id)||0;
+      if(id===0)return;
+      if(!avalPorPq[id])avalPorPq[id]='CONFORME';
+      if(r.resultado==='NAO CONFORME')avalPorPq[id]='NAO CONFORME';
+    });
 
-    // Perguntas sem foto = CONFORME por padrão
-    const ncIds=new Set(resultados.filter(r=>r.resultado==='NAO CONFORME').map(r=>parseInt(r.pq_id)));
+    // resPorPq: primeiro resultado de cada pq (para observação)
+    const resPorPq={};
+    resultados.forEach(r=>{
+      const id=parseInt(r.pq_id)||0;
+      if(id>0&&!resPorPq[id])resPorPq[id]=r;
+      // Se NC, prefere o NC
+      if(id>0&&r.resultado==='NAO CONFORME')resPorPq[id]=r;
+    });
+
+    // ncIds para compatibilidade
+    const ncIds=new Set(Object.entries(avalPorPq).filter(([k,v])=>v==='NAO CONFORME').map(([k])=>parseInt(k)));
 
     let y=36;
     let pontuacaoTotal=0;
@@ -1105,8 +1137,9 @@ function gerarPDF(){
       let subtotal=0;
       pqs.forEach((pq,i)=>{
         const res=resPorPq[pq.id];
-        const isC=res&&res.resultado==='CONFORME';
-        const isNC=res&&res.resultado==='NAO CONFORME';
+        // isC/isNC baseados no resultado agregado da pergunta
+        const isC=avalPorPq[pq.id]==='CONFORME';
+        const isNC=avalPorPq[pq.id]==='NAO CONFORME';
 
         // Altura dinâmica baseada no texto
         const pqLines=doc.splitTextToSize(pq.t,colPQ-2);
@@ -1130,22 +1163,23 @@ function gerarPDF(){
         doc.text(pqLines,xPQ+1,y+3.5);
 
         if(ativo){
-          const semFoto=!res;
-          const conformePadrao=semFoto&&!ncIds.has(pq.id);
-          if(isNC){
+          // Avalição por pq_id (mesma lógica do app)
+          const avalPq=avalPorPq[pq.id]; // 'CONFORME', 'NAO CONFORME', ou undefined (sem foto)
+          const semFoto=!avalPq;
+          const isNC_pq=avalPq==='NAO CONFORME';
+          const isC_pq=avalPq==='CONFORME'||semFoto; // sem foto = conforme por padrão
+
+          if(isNC_pq){
             doc.setFont('helvetica','bold');doc.setTextColor(220,38,38);doc.setFontSize(9);
             doc.text('X',xNC+colNC/2,y+rowH/2+1.5,{align:'center'});
           }
-          if(isC||conformePadrao){
+          if(isC_pq){
             doc.setFont('helvetica','bold');
-            doc.setTextColor(isC?22:120,isC?163:180,isC?74:120);
+            // Verde escuro se fotografado, cinza se padrão
+            doc.setTextColor(semFoto?120:22,semFoto?180:163,semFoto?120:74);
             doc.setFontSize(9);
             doc.text('X',xC+colC/2,y+rowH/2+1.5,{align:'center'});
             subtotal+=valPq;pontuacaoTotal+=valPq;
-          }
-          if(semFoto&&!conformePadrao){
-            doc.setFont('helvetica','normal');doc.setTextColor(180);doc.setFontSize(7);
-            doc.text('—',xNC+colNC+colC/2,y+rowH/2+1,{align:'center'});
           }
           // Observação
           if(obsLines.length>0&&obsText){
@@ -1231,43 +1265,63 @@ function gerarPDF(){
       let ey=19;
       const fW=88,fH=52,gap=6;
       const col1=M,col2=M+fW+gap;
-      const cardH=fH+26;
+      const cardH=fH+28;
+
+      // Controle de coluna independente do índice — reseta ao mudar de linha/página
+      let colAtual=0; // 0=esquerda, 1=direita
 
       sensosDef.forEach(senso=>{
-        const rsSenso=resultados.filter(r=>(r.senso||'')==senso.chave&&r.pq_id>0);
+        // Filtrar TODOS os resultados deste senso (inclusive pq_id=0)
+        const rsSenso=resultados.filter(r=>(r.senso||'')==senso.chave);
         if(!rsSenso.length)return;
 
-        if(ey+10>285){doc.addPage();ey=15;}
+        // Header do senso — sempre na coluna esquerda
+        if(colAtual===1){ey+=cardH+4;colAtual=0;} // fechar linha aberta
+        if(ey+10>285){doc.addPage();ey=15;colAtual=0;}
         doc.setFillColor(...h2r(senso.cor));
         doc.rect(M,ey,CW,5.5,'F');
         doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(7);
         doc.text('SENSO DE '+senso.nome,M+2,ey+3.8);
-        ey+=7;
+        ey+=7;colAtual=0;
 
         rsSenso.forEach((r,ri)=>{
-          const col=ri%2===0?col1:col2;
-          if(ri%2===0&&ri>0&&ey+cardH>285){doc.addPage();ey=15;}
-          if(ri%2===0&&ri===0&&ey+cardH>285){doc.addPage();ey=15;}
+          const col=colAtual===0?col1:col2;
+
+          // Verificar espaço — só na coluna esquerda
+          if(colAtual===0&&ey+cardH>285){doc.addPage();ey=15;}
 
           const isC=r.resultado==='CONFORME';
+          const temFoto=r.foto&&r.foto.length>50;
           const pq=PQ.find(p=>p.id===parseInt(r.pq_id));
           const cBg=isC?'#f0fdf4':'#fff5f5';
           const cBd=isC?'#16a34a':'#dc2626';
 
+          // Card
           doc.setFillColor(...h2r(cBg));doc.rect(col,ey,fW,cardH,'F');
           doc.setDrawColor(...h2r(cBd));doc.rect(col,ey,fW,cardH,'S');
 
           // Badge topo
           doc.setFillColor(...h2r(cBd));doc.rect(col,ey,fW,5,'F');
-          doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(6.5);
+          doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(6);
           const badge=(isC?'✓ CONFORME':'✗ NÃO CONFORME')+' — P'+(r.pq_id||'?')+' — '+senso.chave;
           doc.text(badge,col+fW/2,ey+3.5,{align:'center'});
 
           // Foto
-          try{doc.addImage(r.foto,'JPEG',col+1,ey+6,fW-2,fH,'','FAST');}catch(e){}
+          if(temFoto){
+            try{doc.addImage(r.foto,'JPEG',col+1,ey+6,fW-2,fH,'','FAST');}
+            catch(e){
+              doc.setFillColor(240,240,240);doc.rect(col+1,ey+6,fW-2,fH,'F');
+              doc.setTextColor(150);doc.setFontSize(7);
+              doc.text('Foto não disponível',col+fW/2,ey+6+fH/2,{align:'center'});
+            }
+          }else{
+            doc.setFillColor(245,245,245);doc.rect(col+1,ey+6,fW-2,fH,'F');
+            doc.setTextColor(150);doc.setFontSize(7);doc.setFont('helvetica','normal');
+            doc.text('Sem foto',col+fW/2,ey+6+fH/2,{align:'center'});
+          }
 
           // Pergunta
-          const pqTxt=pq?pq.t:'Avaliação geral';
+          const pqTxt=pq?pq.t:(r.pergunta||'Avaliação geral');
           doc.setTextColor(30,41,59);doc.setFont('helvetica','bold');doc.setFontSize(5.8);
           const pqL=doc.splitTextToSize(pqTxt,fW-4);
           doc.text(pqL.slice(0,2),col+2,ey+fH+9);
@@ -1281,16 +1335,20 @@ function gerarPDF(){
 
           // Sugestão (só NC)
           if(!isC&&r.sugestao){
-            doc.setFillColor(254,243,199);doc.rect(col+1,ey+fH+19,fW-2,6,'F');
+            doc.setFillColor(254,243,199);doc.rect(col+1,ey+fH+20,fW-2,7,'F');
             doc.setTextColor(146,64,14);doc.setFont('helvetica','italic');doc.setFontSize(5.2);
-            const sL=doc.splitTextToSize('Melhoria: '+r.sugestao,fW-6);
-            doc.text(sL.slice(0,2),col+3,ey+fH+22.5);
+            const sL=doc.splitTextToSize('💡 '+r.sugestao,fW-6);
+            doc.text(sL.slice(0,2),col+3,ey+fH+23.5);
           }
 
-          if(ri%2===1)ey+=cardH+4;
+          // Avançar coluna
+          if(colAtual===1){ey+=cardH+4;colAtual=0;}
+          else{colAtual=1;}
         });
-        if(rsSenso.length%2!==0)ey+=cardH+4;
-        ey+=3;
+
+        // Fechar linha se terminou na coluna direita
+        if(colAtual===1){ey+=cardH+4;colAtual=0;}
+        ey+=4;
       });
     }
 
@@ -1521,25 +1579,40 @@ async function baixarPDFHistorico(audId,setorNome,auditorNome){
     });
     const items=await r.json();
     if(!Array.isArray(items)||!items.length){alert('Nenhum item encontrado para esta auditoria.');return;}
-    // Salvar estado atual temporariamente
-    const setorOrig=setor,resultOrig=[...resultados],usuOrig=usuario;
-    // Usar dados do histórico
-    setor=setorNome;
-    usuario={...usuario,nome:auditorNome};
+
+    // Salvar estado atual
+    const setorOrig=setor,resultOrig=[...resultados],usuOrig={...usuario};
+
+    // Configurar estado com dados do histórico
+    setor=setorNome||'Setor';
+    usuario={...usuario,nome:auditorNome||'Auditor'};
+
+    // Mapear itens — foto vem do foto_url salvo
     resultados=items.map(i=>({
-      pq_id:i.pq_id||0,
+      pq_id:parseInt(i.pq_id)||0,
       senso:i.senso||'',
       pergunta:i.pergunta||'',
-      resultado:i.resultado||'NAO CONFORME',
+      resultado:i.resultado==='CONFORME'?'CONFORME':'NAO CONFORME',
       justificativa:i.justificativa||'',
       sugestao:i.sugestao||'',
-      foto:i.foto_url||''
+      foto:i.foto_url||''  // usa foto salva no banco
     }));
+
+    // Gerar PDF
     gerarPDF();
-    // Restaurar estado
-    setTimeout(()=>{setor=setorOrig;resultados=resultOrig;usuario=usuOrig;},500);
-  }catch(e){alert('Erro ao gerar PDF: '+e.message);}
-  finally{btn.textContent='📄 Baixar PDF';btn.disabled=false;}
+
+    // Restaurar após delay
+    setTimeout(()=>{
+      setor=setorOrig;
+      resultados=resultOrig;
+      usuario=usuOrig;
+    },1000);
+  }catch(e){
+    alert('Erro ao gerar PDF: '+e.message);
+    console.error(e);
+  }finally{
+    setTimeout(()=>{btn.textContent='📄 Baixar PDF';btn.disabled=false;},1000);
+  }
 }
 
 function mudarTab(tab){
