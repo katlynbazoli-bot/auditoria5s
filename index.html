@@ -814,64 +814,63 @@ function calcularPontuacao(){
 }
 
 function calcularResultadoFinal(){
-  // LÓGICA DE PONTUAÇÃO:
-  // - Cada pergunta ativa vale 100/totalPq pontos
-  // - Se uma foto NC foi vinculada a uma pergunta (pq_id válido) → pergunta = NC = 0 pts
-  // - Se uma pergunta não teve nenhuma foto → CONFORME por padrão = pts
-  // - Fotos NC com pq_id=0 (erro de IA) contam como NC genérico
-  // - O total de NC = max(ncs por pq_id, total de fotos NC com pq_id=0)
+  // LÓGICA CORRETA — baseada em PERGUNTAS ÚNICAS, não em fotos:
+  //
+  // Exemplo: 6 fotos → P1(NC), P1(NC), P3(NC), P3(NC), P3(NC), P15(NC)
+  // → Perguntas NC únicas: P1, P3, P15 = 3 perguntas NC
+  // → Perguntas C por padrão: 12 restantes
+  // → Pontuação: 12 × 6.67 = 80.04 pts
+  //
+  // Regra por pergunta:
+  // - Se QUALQUER foto apontar NC para uma pergunta → pergunta = NC
+  // - Se todas as fotos de uma pergunta forem C → pergunta = C
+  // - Se nenhuma foto → pergunta = CONFORME por padrão
 
   const sensosAtivos=SENSOS_CONFIG.filter(s=>s.ativo).map(s=>s.nome);
   const pqAtivas=PQ.filter(p=>sensosAtivos.includes(p.s));
   const totalPq=pqAtivas.length||1;
   const valorPorPergunta=parseFloat((100/totalPq).toFixed(4));
 
-  // Passo 1: agrupar por pq_id (só ids válidos > 0)
+  // Agrupar por pq_id ÚNICO — NC tem prioridade sobre C
   const avaliacaoPorPq={};
   resultados.forEach(r=>{
     const id=parseInt(r.pq_id)||0;
-    if(id<1)return;
+    if(id<1||id>25)return; // ignorar pq_id inválido
     if(!avaliacaoPorPq[id])avaliacaoPorPq[id]='CONFORME';
     if(r.resultado==='NAO CONFORME')avaliacaoPorPq[id]='NAO CONFORME';
   });
 
-  // Passo 2: contar NCs por pergunta identificada
-  let nc=0, conformesExplicitos=0, naoFotografadas=0;
+  // Contar por PERGUNTA (não por foto)
+  let nc=0,conformesExplicitos=0,naoFotografadas=0;
   pqAtivas.forEach(pq=>{
     const aval=avaliacaoPorPq[pq.id];
     if(!aval){
-      naoFotografadas++;        // sem foto = conforme por padrão
+      naoFotografadas++; // sem foto = conforme por padrão
     } else if(aval==='NAO CONFORME'){
-      nc++;                     // pergunta identificada como NC
+      nc++;
     } else {
-      conformesExplicitos++;    // pergunta identificada como C
+      conformesExplicitos++;
     }
   });
 
-  // Passo 3: fotos NC com pq_id=0 (erro IA) — deduzir da pontuação
-  // Cada foto NC sem pergunta identificada reduz 1 da contagem de conformes padrão
-  const fotosNCSemPq=resultados.filter(r=>{
+  // Fotos NC com pq_id inválido (erro IA) — descontar das conformes padrão
+  const pqsNcValidas=new Set(
+    resultados
+      .filter(r=>r.resultado==='NAO CONFORME'&&parseInt(r.pq_id)>=1)
+      .map(r=>parseInt(r.pq_id))
+  );
+  const fotosNcSemPq=resultados.filter(r=>{
     const id=parseInt(r.pq_id)||0;
-    return r.resultado==='NAO CONFORME'&&id<1;
+    return r.resultado==='NAO CONFORME'&&(id<1||id>25);
   }).length;
-
-  // Reduzir conformes padrão pelas fotos NC sem pq (até o limite de naoFotografadas)
-  const reducao=Math.min(fotosNCSemPq,naoFotografadas);
+  const reducao=Math.min(fotosNcSemPq,naoFotografadas);
   const naoFotografadasEfetivas=naoFotografadas-reducao;
   const ncTotal=nc+reducao;
 
   const totalConformes=conformesExplicitos+naoFotografadasEfetivas;
-  const pontos=parseFloat(Math.min((totalConformes*valorPorPergunta),100).toFixed(2));
+  const pontos=parseFloat(Math.min(totalConformes*valorPorPergunta,100).toFixed(2));
 
-  return{
-    totalPq,
-    nc:ncTotal,
-    conformesExplicitos,
-    naoFotografadas:naoFotografadasEfetivas,
-    totalConformes,
-    pontos,
-    valorPorPergunta
-  };
+  return{totalPq,nc:ncTotal,conformesExplicitos,naoFotografadas:naoFotografadasEfetivas,totalConformes,pontos,valorPorPergunta};
 }
 
 function atualizarContadores(){
