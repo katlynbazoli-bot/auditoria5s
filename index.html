@@ -337,18 +337,18 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
           <div style="display:flex;justify-content:space-around;margin-top:8px" id="grafico-labels"></div>
         </div>
 
-        <!-- Ranking auditores -->
+        <!-- Ranking PRINCIPAL: por setor -->
         <div style="background:var(--branco);border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid var(--borda)">
-          <div style="font-size:13px;font-weight:700;margin-bottom:4px">🏆 Ranking de auditores</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Por número de auditorias realizadas</div>
-          <div id="ranking-auditores"></div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px">🏆 Ranking de Setores</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Pontuação da última auditoria de cada setor</div>
+          <div id="ranking-setores"></div>
         </div>
 
-        <!-- Ranking conformidade -->
+        <!-- Ranking secundário: auditores -->
         <div style="background:var(--branco);border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid var(--borda)">
-          <div style="font-size:13px;font-weight:700;margin-bottom:4px">📋 Conformidade por auditor</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Ordenado por % de conformidade</div>
-          <div id="ranking-setores"></div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:4px">👤 Auditorias por colaborador</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Quantidade de auditorias realizadas</div>
+          <div id="ranking-auditores"></div>
         </div>
       </div>
 
@@ -693,13 +693,37 @@ async function analisarTudo(){
   document.getElementById('loading-bar').style.display='flex';
   atualizarContadores();
 
+  // Mapa de hashes já vistos nesta sessão de análise
+  const hashesVistos={}; // hash -> índice do resultado original
+
   for(let i=0;i<fotos.length;i++){
+    const hash=hashFoto(fotos[i].base64);
+    const idxOriginal=hashesVistos[hash];
+
+    if(idxOriginal!==undefined){
+      // Foto repetida — não chama a IA, reaproveita o resultado anterior
+      document.getElementById('loading-txt').textContent=`Foto ${i+1} de ${fotos.length}: duplicada detectada, pulando análise...`;
+      const original=resultados[idxOriginal];
+      resultados.push({
+        ...original,
+        foto:fotos[i].base64,
+        duplicada:true,
+        justificativa:'📋 Foto repetida — mesma evidência da foto anterior. '+(original.justificativa||'')
+      });
+      atualizarContadores();
+      renderizarResultados();
+      await sleep(300);
+      continue;
+    }
+
+    hashesVistos[hash]=resultados.length; // guarda o índice antes de inserir
     document.getElementById('loading-txt').textContent=`Analisando foto ${i+1} de ${fotos.length}... aguarde`;
     const r=await analisarComRetry(fotos[i],i);
-    resultados.push({...r,foto:fotos[i].base64});
+    resultados.push({...r,foto:fotos[i].base64,duplicada:false});
     atualizarContadores();
     renderizarResultados();
-    // Pausa de 6 segundos entre fotos para respeitar o limite de tokens por minuto
+
+    // Pausa entre fotos para respeitar o limite de tokens por minuto (só se NÃO for a última)
     if(i<fotos.length-1){
       for(let s=6;s>0;s--){
         document.getElementById('loading-txt').textContent=`Foto ${i+1} analisada ✅ — próxima em ${s}s...`;
@@ -887,16 +911,16 @@ function atualizarContadores(){
 function renderizarResultados(){
   document.getElementById('lista-resultados').innerHTML=resultados.map((r,i)=>{
     const isC=r.resultado==='CONFORME';
-    const isErr=r.senso==='Erro';
     const cls=isC?'res-c':'res-nc';
     const bcls=isC?'badge-c':'badge-nc';
     const label=isC?'✅ CONFORME':'❌ NÃO CONFORME';
+    const dupBadge=r.duplicada?`<span class="badge" style="background:#94a3b8;color:#fff">📋 DUPLICADA</span>`:'';
     const sugestao=!isC&&r.sugestao?`
       <div style="margin-top:6px;padding:6px 8px;background:rgba(245,158,11,.12);border-left:3px solid #f59e0b;border-radius:4px">
         <div style="font-size:10px;font-weight:700;color:#92400e;margin-bottom:2px">💡 SUGESTÃO DE MELHORIA</div>
         <div style="font-size:11px;color:#78350f;line-height:1.4">${r.sugestao}</div>
       </div>`:'';
-    return`<div class="res-card ${cls}" id="res-${i}">
+    return`<div class="res-card ${cls}" id="res-${i}" style="${r.duplicada?'opacity:.75':''}">
       <div class="res-head">
         <img class="res-thumb" src="${r.foto}" style="cursor:pointer" onclick="verFotoGrande('${r.foto}')">
         <div class="res-info">
@@ -904,6 +928,7 @@ function renderizarResultados(){
             <span class="badge ${bcls}">${label}</span>
             <span class="badge badge-senso">${r.senso||''}</span>
             ${r.pq_id?`<span class="badge badge-num">P${r.pq_id}</span>`:''}
+            ${dupBadge}
           </div>
           <div class="res-pergunta">${r.pergunta||''}</div>
           <div class="res-just">${r.justificativa||''}</div>
@@ -1006,14 +1031,34 @@ async function salvarAuditoria(){
   const btn=document.getElementById('btn-salvar');
   btn.disabled=true;btn.textContent='💾 Salvando...';
   try{
+    const {totalPq,nc,conformesExplicitos,naoFotografadas,totalConformes,pontos}=calcularResultadoFinal();
+
     const ar=await fetch(`${SB_URL}/rest/v1/auditorias`,{
       method:'POST',
       headers:{apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'},
-      body:JSON.stringify({setor_id:null,auditor:usuario.nome,mes_referencia:new Date().toISOString().slice(0,7),setor_nome:setor})
+      body:JSON.stringify({
+        setor_id:null,
+        auditor:usuario.nome,
+        mes_referencia:new Date().toISOString().slice(0,7),
+        setor_nome:setor,
+        pontuacao_total:pontos
+      })
     });
     const aud=await ar.json();
     const audId=aud[0]?.id;
-    for(const r of resultados){
+
+    // Comprimir todas as fotos primeiro (em paralelo, mas com limite)
+    btn.textContent='💾 Processando fotos...';
+    const resultadosComFoto=[];
+    for(let i=0;i<resultados.length;i++){
+      const r=resultados[i];
+      btn.textContent=`💾 Processando foto ${i+1}/${resultados.length}...`;
+      const fotoComprimida=await comprimirFoto(r.foto||'');
+      resultadosComFoto.push({...r,fotoComprimida});
+    }
+
+    btn.textContent='💾 Salvando no banco...';
+    for(const r of resultadosComFoto){
       await fetch(`${SB_URL}/rest/v1/itens_auditoria`,{
         method:'POST',
         headers:{apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
@@ -1024,12 +1069,12 @@ async function salvarAuditoria(){
           resultado:r.resultado||'NAO CONFORME',
           justificativa:r.justificativa||'',
           sugestao:r.sugestao||'',
-          foto_url:comprimirFoto(r.foto||''),
+          foto_url:r.fotoComprimida||'',
           pontuacao:r.resultado==='CONFORME'?1:0
         })
       });
     }
-    const {totalPq,nc,conformesExplicitos,naoFotografadas,totalConformes,pontos}=calcularResultadoFinal();
+
     const pqsComFoto=new Set(resultados.filter(r=>r.pq_id>0).map(r=>parseInt(r.pq_id))).size;
     document.getElementById('pct-final').textContent=pontos.toFixed(1)+'%';
     document.getElementById('pct-setor-label').textContent=setor;
@@ -1039,26 +1084,45 @@ async function salvarAuditoria(){
     const elPts=document.getElementById('suc-pts');
     if(elPts)elPts.textContent=pontos.toFixed(1)+' pts';
     irPara('tela-sucesso');setHeader('Auditoria salva!','');
-  }catch(e){alert('Erro ao salvar: '+e.message);}
+  }catch(e){alert('Erro ao salvar: '+e.message);console.error(e);}
   finally{btn.disabled=false;btn.textContent='💾 Salvar auditoria';}
 }
 
-function comprimirFoto(base64,maxW=400,quality=0.6){
-  // Comprime a foto para caber no Supabase (max ~500kb)
-  if(!base64||base64.length<100)return '';
-  try{
-    const canvas=document.createElement('canvas');
-    const img=new Image();
-    // Síncrono não funciona, retornar base64 original limitado
-    // Limitamos o tamanho cortando — max 200kb em base64
-    const MAX=200000;
-    if(base64.length>MAX){
-      // Reduzir qualidade via canvas de forma assíncrona não é possível aqui
-      // então simplesmente truncamos e retornamos string vazia se muito grande
-      return base64.slice(0,MAX);
-    }
-    return base64;
-  }catch(e){return '';}
+function comprimirFoto(base64,maxW=480,quality=0.55){
+  // Comprime a foto de verdade via canvas, retorna Promise<string base64 válida>
+  return new Promise((resolve)=>{
+    if(!base64||base64.length<100){resolve('');return;}
+    try{
+      const img=new Image();
+      img.onload=()=>{
+        try{
+          let w=img.width,h=img.height;
+          if(w>maxW){h=Math.round(h*(maxW/w));w=maxW;}
+          const canvas=document.createElement('canvas');
+          canvas.width=w;canvas.height=h;
+          const ctx=canvas.getContext('2d');
+          ctx.drawImage(img,0,0,w,h);
+          const out=canvas.toDataURL('image/jpeg',quality);
+          resolve(out);
+        }catch(e){resolve('');}
+      };
+      img.onerror=()=>resolve('');
+      img.src=base64;
+    }catch(e){resolve('');}
+  });
+}
+
+function hashFoto(base64){
+  // Hash simples e rápido para detectar fotos idênticas/repetidas
+  if(!base64)return '';
+  let hash=0;
+  // Amostra de caracteres distribuídos pela string (rápido, não precisa ler tudo)
+  const len=base64.length;
+  const step=Math.max(1,Math.floor(len/500));
+  for(let i=0;i<len;i+=step){
+    hash=((hash<<5)-hash+base64.charCodeAt(i))|0;
+  }
+  return hash+'_'+len;
 }
 
 function novaAuditoria(){fotos=[];resultados=[];setor='';navegar('home');}
@@ -1411,7 +1475,7 @@ async function carregarDashboard(){
     ]);
     const items=await rItems.json();
     const auds=await rAuds.json();
-    if(!Array.isArray(items))return;
+    if(!Array.isArray(items)||!Array.isArray(auds))return;
 
     const tot=items.length;
     const c=items.filter(i=>i.resultado==='CONFORME').length;
@@ -1422,7 +1486,7 @@ async function carregarDashboard(){
     document.getElementById('d-pct').textContent=pct+'%';
     document.getElementById('d-c').textContent=c;
     document.getElementById('d-nc').textContent=nc;
-    document.getElementById('dash-sub').textContent=`${tot} registros em ${Array.isArray(auds)?auds.length:0} auditorias`;
+    document.getElementById('dash-sub').textContent=`${tot} registros | ${auds.length} auditorias realizadas`;
 
     const bg=document.getElementById('barra-geral');
     const bgt=document.getElementById('barra-geral-txt');
@@ -1438,9 +1502,7 @@ async function carregarDashboard(){
       return{nome:s,pct:si.length?Math.round((sc/si.length)*100):0,total:si.length};
     });
 
-    // Pilares
-    const maxPct=Math.max(...dadosSenso.map(d=>d.pct),1);
-    document.getElementById('grafico-pilares').innerHTML=dadosSenso.map((d,i)=>{
+    document.getElementById('grafico-pilares').innerHTML=dadosSenso.map((d)=>{
       const h=Math.max((d.pct/100)*140,2);
       const cor=d.pct>=80?'#16a34a':d.pct>=50?'#f59e0b':'#dc2626';
       return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px">
@@ -1450,32 +1512,70 @@ async function carregarDashboard(){
         </div>
       </div>`;
     }).join('');
-
-    document.getElementById('grafico-labels').innerHTML=labels.map((l,i)=>`
+    document.getElementById('grafico-labels').innerHTML=labels.map(l=>`
       <div style="flex:1;text-align:center;font-size:10px;font-weight:600;color:var(--muted)">${l}</div>`).join('');
 
-    // Barras por senso (aba sensos)
     document.getElementById('barras-senso').innerHTML=dadosSenso.map((d,i)=>{
       const cor=d.pct>=80?'#16a34a':d.pct>=50?'#f59e0b':'#dc2626';
       return`<div class="barra-container">
-        <div class="barra-label">
-          <span>${i+1}S — ${d.nome} <span style="color:var(--muted);font-weight:400">(${d.total} itens)</span></span>
-          <span style="font-weight:700;color:${cor}">${d.pct}%</span>
-        </div>
+        <div class="barra-label"><span>${i+1}S — ${d.nome} <span style="color:var(--muted);font-weight:400">(${d.total} itens)</span></span><span style="font-weight:700;color:${cor}">${d.pct}%</span></div>
         <div class="barra"><div class="barra-fill" style="width:${d.pct}%;background:${cor}"></div></div>
       </div>`;
     }).join('');
 
-    if(Array.isArray(auds)&&auds.length){
-      // Ranking por número de auditorias
-      const byAudCount={};
-      auds.forEach(a=>{
-        const n=a.auditor||'Desconhecido';
-        byAudCount[n]=(byAudCount[n]||0)+1;
-      });
-      const rankCount=Object.entries(byAudCount).map(([n,qt])=>({nome:n,qt})).sort((a,b)=>b.qt-a.qt);
-      const emojis=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
-      document.getElementById('ranking-auditores').innerHTML=rankCount.map((r,i)=>`
+    // ── RANKING POR SETOR (não por auditor) ──────────────────────
+    // Agrupar auditorias por setor_nome, pegando a pontuação salva de cada uma
+    const porSetor={};
+    auds.forEach(a=>{
+      const nomeSetor=a.setor_nome||'Sem setor';
+      if(!porSetor[nomeSetor])porSetor[nomeSetor]={pontuacoes:[],qtdAuditorias:0,ultimaData:null};
+      const pts=typeof a.pontuacao_total==='number'?a.pontuacao_total:null;
+      if(pts!==null)porSetor[nomeSetor].pontuacoes.push(pts);
+      porSetor[nomeSetor].qtdAuditorias++;
+      const dt=new Date(a.data_auditoria);
+      if(!porSetor[nomeSetor].ultimaData||dt>porSetor[nomeSetor].ultimaData){
+        porSetor[nomeSetor].ultimaData=dt;
+      }
+    });
+
+    const rankSetores=Object.entries(porSetor).map(([nome,v])=>{
+      const media=v.pontuacoes.length?v.pontuacoes.reduce((a,b)=>a+b,0)/v.pontuacoes.length:0;
+      const ultima=v.pontuacoes.length?v.pontuacoes[v.pontuacoes.length-1]:0;
+      return{nome,media:Math.round(media*10)/10,ultima:Math.round(ultima*10)/10,qtd:v.qtdAuditorias,dataUltima:v.ultimaData};
+    }).sort((a,b)=>b.ultima-a.ultima);
+
+    const emojis=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','11','12','13','14'];
+
+    document.getElementById('ranking-setores').innerHTML=rankSetores.length?rankSetores.map((r,i)=>{
+      const cor=r.ultima>=80?'#16a34a':r.ultima>=50?'#f59e0b':'#dc2626';
+      const dataTxt=r.dataUltima?r.dataUltima.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'';
+      return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--borda)">
+        <div style="font-size:18px;width:28px;text-align:center;flex-shrink:0">${emojis[i]||(i+1)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700">${r.nome}</div>
+          <div style="font-size:10px;color:var(--muted)">${r.qtd} auditoria(s) — última em ${dataTxt}</div>
+          <div style="height:6px;background:var(--cinza);border-radius:3px;margin-top:4px;overflow:hidden">
+            <div style="height:100%;background:${cor};border-radius:3px;width:${Math.min(r.ultima,100)}%;transition:width .6s"></div>
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:20px;font-weight:700;color:${cor}">${r.ultima}</div>
+          <div style="font-size:9px;color:var(--muted)">pts</div>
+        </div>
+      </div>`;
+    }).join(''):'<div class="empty"><div class="ei">📊</div><p>Nenhuma auditoria com pontuação registrada ainda</p></div>';
+
+    // ── Ranking secundário: auditores (quantidade de auditorias) ──
+    const byAudCount={};
+    auds.forEach(a=>{
+      const n=a.auditor||'Desconhecido';
+      byAudCount[n]=(byAudCount[n]||0)+1;
+    });
+    const rankCount=Object.entries(byAudCount).map(([n,qt])=>({nome:n,qt})).sort((a,b)=>b.qt-a.qt);
+
+    const elAud=document.getElementById('ranking-auditores');
+    if(elAud){
+      elAud.innerHTML=rankCount.length?rankCount.map((r,i)=>`
         <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda)">
           <div style="font-size:18px;width:28px;text-align:center">${emojis[i]||i+1}</div>
           <div style="flex:1">
@@ -1485,35 +1585,7 @@ async function carregarDashboard(){
             </div>
           </div>
           <div style="font-size:16px;font-weight:700;color:var(--azul)">${r.qt} <span style="font-size:10px;font-weight:400;color:var(--muted)">audit.</span></div>
-        </div>`).join('');
-
-      // Ranking por conformidade
-      const byAudConf={};
-      items.forEach(i=>{
-        const aud=auds.find(a=>a.id===i.auditoria_id);
-        const nome=aud?.auditor||'Desconhecido';
-        if(!byAudConf[nome])byAudConf[nome]={c:0,t:0};
-        byAudConf[nome].t++;
-        if(i.resultado==='CONFORME')byAudConf[nome].c++;
-      });
-      const rankConf=Object.entries(byAudConf).map(([n,v])=>({nome:n,pct:v.t?Math.round((v.c/v.t)*100):0,c:v.c,t:v.t})).sort((a,b)=>b.pct-a.pct);
-      document.getElementById('ranking-setores').innerHTML=rankConf.map((r,i)=>{
-        const cor=r.pct>=80?'#16a34a':r.pct>=50?'#f59e0b':'#dc2626';
-        return`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda)">
-          <div style="font-size:18px;width:28px;text-align:center">${emojis[i]||i+1}</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:600">${r.nome}</div>
-            <div style="font-size:10px;color:var(--muted)">${r.c} conformes de ${r.t} registros</div>
-            <div style="height:6px;background:var(--cinza);border-radius:3px;margin-top:4px;overflow:hidden">
-              <div style="height:100%;background:${cor};border-radius:3px;width:${r.pct}%"></div>
-            </div>
-          </div>
-          <div style="font-size:18px;font-weight:700;color:${cor}">${r.pct}%</div>
-        </div>`;
-      }).join('');
-    } else {
-      document.getElementById('ranking-auditores').innerHTML='<div class="empty"><div class="ei">📊</div><p>Nenhuma auditoria ainda</p></div>';
-      document.getElementById('ranking-setores').innerHTML='';
+        </div>`).join(''):'<div class="empty"><div class="ei">📊</div><p>Nenhuma auditoria ainda</p></div>';
     }
   }catch(e){console.error('Dashboard erro:',e);}
 }
