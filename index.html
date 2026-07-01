@@ -1177,6 +1177,9 @@ function gerarPDF(pontosHistorico=null){
     const {totalPq,nc:totalNC,totalConformes,pontos:pontosApp,valorPorPergunta}=calcularResultadoFinal();
     const valPq=valorPorPergunta;
 
+    // sensosAtivos necessário para o checklist do PDF
+    const sensosAtivos=SENSOS_CONFIG.filter(s=>s.ativo).map(s=>s.nome);
+
     // Agrupar por pq_id para o checklist (ignorar duplicatas e NAO_APLICAVEL)
     const avalPorPq={};
     resultados.forEach(r=>{
