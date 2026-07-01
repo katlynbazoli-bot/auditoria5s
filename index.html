@@ -701,14 +701,17 @@ async function analisarTudo(){
     const idxOriginal=hashesVistos[hash];
 
     if(idxOriginal!==undefined){
-      // Foto repetida — não chama a IA, reaproveita o resultado anterior
-      document.getElementById('loading-txt').textContent=`Foto ${i+1} de ${fotos.length}: duplicada detectada, pulando análise...`;
-      const original=resultados[idxOriginal];
+      // Foto repetida — marca como NAO_APLICAVEL, não entra na análise nem na pontuação
+      document.getElementById('loading-txt').textContent=`Foto ${i+1} de ${fotos.length}: duplicada detectada, ignorando...`;
       resultados.push({
-        ...original,
+        pq_id:0,
+        senso:'N/A',
+        pergunta:'Foto duplicada',
+        resultado:'NAO_APLICAVEL',
+        justificativa:'Esta foto é idêntica a uma já analisada nesta auditoria. Não será contabilizada na pontuação.',
+        sugestao:'',
         foto:fotos[i].base64,
-        duplicada:true,
-        justificativa:'📋 Foto repetida — mesma evidência da foto anterior. '+(original.justificativa||'')
+        duplicada:true
       });
       atualizarContadores();
       renderizarResultados();
@@ -817,7 +820,12 @@ async function analisarFoto(foto){
     }
     if(!json)throw new Error('Não foi possível extrair JSON: '+txt.slice(0,100));
     // Garantir campos obrigatórios
-    if(!json.pq_id)json.pq_id=0;
+    // Sanitizar pq_id: remover prefixo "P" ou "PP" que a IA às vezes inclui
+    if(typeof json.pq_id==='string'){
+      json.pq_id=parseInt(json.pq_id.replace(/[^0-9]/g,''))||0;
+    }
+    json.pq_id=parseInt(json.pq_id)||0;
+    if(json.pq_id<1||json.pq_id>25)json.pq_id=0;
     if(!json.senso)json.senso='Não identificado';
     if(!json.pergunta||json.pergunta.length<3)json.pergunta='Avaliação geral do setor';
     if(!json.justificativa||json.justificativa.length<3)json.justificativa='Análise realizada com base na imagem fornecida.';
@@ -855,9 +863,10 @@ function calcularResultadoFinal(){
   const totalPq=pqAtivas.length||1;
   const valorPorPergunta=parseFloat((100/totalPq).toFixed(4));
 
-  // Agrupar por pq_id ÚNICO — NC tem prioridade sobre C
+  // Agrupar por pq_id ÚNICO — NC tem prioridade; duplicatas (NAO_APLICAVEL) são ignoradas
   const avaliacaoPorPq={};
   resultados.forEach(r=>{
+    if(r.resultado==='NAO_APLICAVEL'||r.duplicada)return; // ignorar duplicatas
     const id=parseInt(r.pq_id)||0;
     if(id<1||id>25)return; // ignorar pq_id inválido
     if(!avaliacaoPorPq[id])avaliacaoPorPq[id]='CONFORME';
@@ -910,11 +919,12 @@ function atualizarContadores(){
 
 function renderizarResultados(){
   document.getElementById('lista-resultados').innerHTML=resultados.map((r,i)=>{
+    const isNA=r.resultado==='NAO_APLICAVEL'||r.duplicada;
     const isC=r.resultado==='CONFORME';
-    const cls=isC?'res-c':'res-nc';
+    const cls=isNA?'':'res-nc';
     const bcls=isC?'badge-c':'badge-nc';
     const label=isC?'✅ CONFORME':'❌ NÃO CONFORME';
-    const dupBadge=r.duplicada?`<span class="badge" style="background:#94a3b8;color:#fff">📋 DUPLICADA</span>`:'';
+    const dupBadge=isNA?`<span class="badge" style="background:#94a3b8;color:#fff">📋 NÃO APLICÁVEL — DUPLICADA</span>`:'';
     const sugestao=!isC&&r.sugestao?`
       <div style="margin-top:6px;padding:6px 8px;background:rgba(245,158,11,.12);border-left:3px solid #f59e0b;border-radius:4px">
         <div style="font-size:10px;font-weight:700;color:#92400e;margin-bottom:2px">💡 SUGESTÃO DE MELHORIA</div>
@@ -1041,7 +1051,8 @@ async function salvarAuditoria(){
         auditor:usuario.nome,
         mes_referencia:new Date().toISOString().slice(0,7),
         setor_nome:setor,
-        pontuacao_total:pontos
+        pontuacao_total:pontos,
+        sensos_ativos:JSON.stringify(SENSOS_CONFIG.filter(s=>s.ativo).map(s=>s.nome))
       })
     });
     const aud=await ar.json();
@@ -1059,6 +1070,8 @@ async function salvarAuditoria(){
 
     btn.textContent='💾 Salvando no banco...';
     for(const r of resultadosComFoto){
+      // Não salvar duplicatas no banco
+      if(r.duplicada||r.resultado==='NAO_APLICAVEL')continue;
       await fetch(`${SB_URL}/rest/v1/itens_auditoria`,{
         method:'POST',
         headers:{apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
@@ -1128,7 +1141,7 @@ function hashFoto(base64){
 function novaAuditoria(){fotos=[];resultados=[];setor='';navegar('home');}
 
 // PDF
-function gerarPDF(){
+function gerarPDF(pontosHistorico=null){
   try{
     const{jsPDF}=window.jspdf;
     const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
@@ -1160,32 +1173,29 @@ function gerarPDF(){
     doc.text('Data: ',W/2+5,27);doc.setFont('helvetica','normal');doc.text(data,W/2+16,27);
     doc.text('Mês: ',W/2+5,32);doc.setFont('helvetica','normal');doc.text(mes,W/2+14,32);
 
-    // Calcular pontuação — mesma lógica do app
-    const sensosAtivos=SENSOS_CONFIG.filter(s=>s.ativo).map(s=>s.nome);
-    const pqAtivas=PQ.filter(p=>sensosAtivos.includes(p.s));
-    const totalPq=pqAtivas.length||1;
-    const valPq=parseFloat((100/totalPq).toFixed(4));
+    // Usar EXATAMENTE a mesma lógica do app (calcularResultadoFinal)
+    const {totalPq,nc:totalNC,totalConformes,pontos:pontosApp,valorPorPergunta}=calcularResultadoFinal();
+    const valPq=valorPorPergunta;
 
-    // Agrupar por pq_id: se qualquer foto for NC, a pergunta é NC
+    // Agrupar por pq_id para o checklist (ignorar duplicatas e NAO_APLICAVEL)
     const avalPorPq={};
     resultados.forEach(r=>{
+      if(r.duplicada||r.resultado==='NAO_APLICAVEL')return;
       const id=parseInt(r.pq_id)||0;
-      if(id===0)return;
+      if(id<1||id>25)return;
       if(!avalPorPq[id])avalPorPq[id]='CONFORME';
       if(r.resultado==='NAO CONFORME')avalPorPq[id]='NAO CONFORME';
     });
 
-    // resPorPq: primeiro resultado de cada pq (para observação)
+    // resPorPq: resultado mais relevante por pergunta (para observação)
     const resPorPq={};
     resultados.forEach(r=>{
+      if(r.duplicada||r.resultado==='NAO_APLICAVEL')return;
       const id=parseInt(r.pq_id)||0;
-      if(id>0&&!resPorPq[id])resPorPq[id]=r;
-      // Se NC, prefere o NC
-      if(id>0&&r.resultado==='NAO CONFORME')resPorPq[id]=r;
+      if(id<1||id>25)return;
+      if(!resPorPq[id])resPorPq[id]=r;
+      if(r.resultado==='NAO CONFORME')resPorPq[id]=r;
     });
-
-    // ncIds para compatibilidade
-    const ncIds=new Set(Object.entries(avalPorPq).filter(([k,v])=>v==='NAO CONFORME').map(([k])=>parseInt(k)));
 
     let y=36;
     let pontuacaoTotal=0;
@@ -1309,7 +1319,10 @@ function gerarPDF(){
     doc.setFillColor(29,78,216);doc.rect(M,y,CW,8,'F');
     doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(9);
     doc.text('PONTUAÇÃO TOTAL DO SETOR NO MÊS',M+2,y+5.5);
-    const pctFinal=Math.min(parseFloat(pontuacaoTotal.toFixed(1)),100);
+    // Usar pontuação histórica se disponível (imutável), senão usar do app
+    const pctFinal=pontosHistorico!==null
+      ? Math.min(parseFloat(pontosHistorico.toFixed(1)),100)
+      : Math.min(parseFloat(pontosApp.toFixed(1)),100);
     const corFt=pctFinal>=80?[74,222,128]:pctFinal>=50?[251,191,36]:[252,165,165];
     doc.setTextColor(...corFt);doc.setFontSize(11);
     doc.text(pctFinal.toFixed(1)+' / 100 pts',M+CW-2,y+5.5,{align:'right'});
@@ -1682,20 +1695,37 @@ async function baixarPDFHistorico(audId,setorNome,auditorNome){
   const btn=event.target;
   btn.textContent='⏳ Gerando...';btn.disabled=true;
   try{
-    const r=await fetch(`${SB_URL}/rest/v1/itens_auditoria?auditoria_id=eq.${audId}&order=senso,pergunta`,{
-      headers:{apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY}
-    });
-    const items=await r.json();
-    if(!Array.isArray(items)||!items.length){alert('Nenhum item encontrado para esta auditoria.');return;}
+    // Buscar auditoria + itens em paralelo
+    const [rAud,rItems]=await Promise.all([
+      fetch(`${SB_URL}/rest/v1/auditorias?id=eq.${audId}&select=*`,{headers:{apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY}}),
+      fetch(`${SB_URL}/rest/v1/itens_auditoria?auditoria_id=eq.${audId}&order=senso,pergunta`,{headers:{apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY}})
+    ]);
+    const [auds,items]=await Promise.all([rAud.json(),rItems.json()]);
+    const aud=Array.isArray(auds)?auds[0]:null;
 
-    // Salvar estado atual
-    const setorOrig=setor,resultOrig=[...resultados],usuOrig={...usuario};
+    if(!Array.isArray(items)||!items.length){
+      alert('Nenhum item encontrado para esta auditoria.');return;
+    }
 
-    // Configurar estado com dados do histórico
-    setor=setorNome||'Setor';
-    usuario={...usuario,nome:auditorNome||'Auditor'};
+    // Salvar estado global atual
+    const setorOrig=setor;
+    const resultOrig=[...resultados];
+    const usuOrig={...usuario};
+    const sensosOrig=JSON.parse(JSON.stringify(SENSOS_CONFIG));
 
-    // Mapear itens — foto vem do foto_url salvo
+    // Restaurar sensos_ativos da época da auditoria (imutabilidade)
+    if(aud&&aud.sensos_ativos){
+      try{
+        const sensosNomes=JSON.parse(aud.sensos_ativos);
+        SENSOS_CONFIG.forEach(s=>{s.ativo=sensosNomes.includes(s.nome);});
+      }catch(e){}
+    }
+
+    // Configurar estado com dados salvos
+    setor=setorNome||aud?.setor_nome||'Setor';
+    usuario={...usuario,nome:auditorNome||aud?.auditor||'Auditor'};
+
+    // Mapear itens do banco — usar foto_url e resultado salvos
     resultados=items.map(i=>({
       pq_id:parseInt(i.pq_id)||0,
       senso:i.senso||'',
@@ -1703,23 +1733,29 @@ async function baixarPDFHistorico(audId,setorNome,auditorNome){
       resultado:i.resultado==='CONFORME'?'CONFORME':'NAO CONFORME',
       justificativa:i.justificativa||'',
       sugestao:i.sugestao||'',
-      foto:i.foto_url||''  // usa foto salva no banco
+      foto:i.foto_url||'',
+      duplicada:false
     }));
 
-    // Gerar PDF
-    gerarPDF();
+    // Se a auditoria tem pontuação salva, usar ela diretamente no PDF
+    // sobrescrevendo o cálculo de calcularResultadoFinal
+    const pontosHistorico=typeof aud?.pontuacao_total==='number'?aud.pontuacao_total:null;
 
-    // Restaurar após delay
+    // Gerar PDF
+    gerarPDF(pontosHistorico);
+
+    // Restaurar estado original após delay
     setTimeout(()=>{
       setor=setorOrig;
       resultados=resultOrig;
       usuario=usuOrig;
-    },1000);
+      SENSOS_CONFIG.forEach((s,i)=>{s.ativo=sensosOrig[i].ativo;});
+    },1500);
   }catch(e){
     alert('Erro ao gerar PDF: '+e.message);
     console.error(e);
   }finally{
-    setTimeout(()=>{btn.textContent='📄 Baixar PDF';btn.disabled=false;},1000);
+    setTimeout(()=>{btn.textContent='📄 Baixar PDF';btn.disabled=false;},1500);
   }
 }
 
