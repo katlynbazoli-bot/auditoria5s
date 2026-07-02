@@ -1077,6 +1077,7 @@ async function salvarAuditoria(){
         headers:{apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
         body:JSON.stringify({
           auditoria_id:audId,
+          pq_id:parseInt(r.pq_id)||0,
           senso:r.senso||'',
           pergunta:r.pergunta||'',
           resultado:r.resultado||'NAO CONFORME',
