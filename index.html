@@ -241,6 +241,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
         <div class="fotos-grid" id="fotos-grid"></div>
         <div class="empty" id="empty-fotos"><div class="ei">🖼️</div><p>Nenhuma foto adicionada ainda</p></div>
         <button class="btn btn-primary" id="btn-analisar" onclick="analisarTudo()" disabled>🔍 Analisar com IA (<span id="qtd-fotos">0</span> fotos)</button>
+        <button class="btn btn-outline" id="btn-sem-foto" onclick="concluirSemFotos()" style="display:block;background:#f0fdf4;color:#16a34a;border:1.5px solid #16a34a">✅ Concluir auditoria com pontuação máxima</button>
         <button class="btn btn-outline" onclick="voltarTela()">← Voltar</button>
       </div>
     </div>
@@ -673,6 +674,9 @@ function atualizarGridFotos(){
   document.getElementById('qtd-fotos').textContent=fotos.length;
   empty.style.display=fotos.length?'none':'block';
   btn.disabled=!fotos.length;
+  // Mostrar botão "sem fotos" apenas quando não há fotos
+  const btnSemFoto=document.getElementById('btn-sem-foto');
+  if(btnSemFoto)btnSemFoto.style.display=fotos.length?'none':'block';
   grid.innerHTML=fotos.map(f=>`
     <div class="foto-item">
       <img src="${f.base64}">
@@ -723,6 +727,27 @@ async function analisarTudo(){
     document.getElementById('loading-txt').textContent=`Analisando foto ${i+1} de ${fotos.length}... aguarde`;
     const r=await analisarComRetry(fotos[i],i);
     resultados.push({...r,foto:fotos[i].base64,duplicada:false});
+
+    // REGRA DE NEGÓCIO: resíduo/sujeira detectado → P14 automaticamente NC
+    if(r._flagP14NC){
+      // Verificar se P14 já não foi marcada NC nesta sessão
+      const p14Existente=resultados.find(x=>parseInt(x.pq_id)===14&&x.resultado==='NAO CONFORME');
+      if(!p14Existente){
+        const pq14=PQ.find(p=>p.id===14);
+        resultados.push({
+          pq_id:14,
+          senso:'Seiso',
+          pergunta:pq14?pq14.t:'Existe rotina de limpeza definida e cumprida?',
+          resultado:'NAO CONFORME',
+          justificativa:'Regra automática: evidência de resíduo ou sujeira acumulada detectada na foto indica que a rotina de limpeza não está sendo cumprida efetivamente.',
+          sugestao:'Estabelecer ou revisar cronograma de limpeza com responsável definido, checklist de verificação diária e registro de execução.',
+          foto:fotos[i].base64,
+          duplicada:false,
+          _regraAutomatica:true
+        });
+      }
+    }
+
     atualizarContadores();
     renderizarResultados();
 
@@ -831,6 +856,23 @@ async function analisarFoto(foto){
     if(!json.justificativa||json.justificativa.length<3)json.justificativa='Análise realizada com base na imagem fornecida.';
     if(json.resultado!=='CONFORME')json.resultado='NAO CONFORME';
     if(!json.sugestao)json.sugestao='';
+
+    // REGRA DE NEGÓCIO: se há evidência de resíduo/sujeira → P14 automaticamente NC
+    // P14 = "Existe rotina de limpeza definida e cumprida?"
+    const palavrasResiduo=[
+      'resíduo','residuo','sujeira','sujo','suja','lixo','pó','po ','poeira',
+      'acumulado','acumulada','acúmulo','acumulo','detrito','detritos',
+      'limpeza não','limpeza nao','sem limpeza','falta de limpeza',
+      'não limpo','nao limpo','não limpa','nao limpa','imundo','imunda',
+      'contaminado','contaminada','manchado','manchada','gordura','óleo derramado'
+    ];
+    const textoAnalise=(json.justificativa+' '+(json.pergunta||'')).toLowerCase();
+    const temResiduo=palavrasResiduo.some(p=>textoAnalise.includes(p));
+    if(temResiduo&&json.pq_id!==14){
+      // Retorna o resultado principal normalmente
+      // A regra P14 será aplicada em analisarFoto via flag
+      json._flagP14NC=true;
+    }
     return json;
   }catch(e){
     return{pq_id:0,senso:'Erro',pergunta:'Erro na análise',resultado:'NAO CONFORME',justificativa:e.message};
@@ -1137,6 +1179,93 @@ function hashFoto(base64){
     hash=((hash<<5)-hash+base64.charCodeAt(i))|0;
   }
   return hash+'_'+len;
+}
+
+async function concluirSemFotos(){
+  if(fotos.length>0){
+    alert('Esta opção só está disponível quando não há fotos anexadas.');
+    return;
+  }
+  if(!confirm('Confirma conclusão da auditoria com pontuação máxima (100%)?
+
+Todos os itens serão considerados CONFORMES.
+Nenhuma foto será anexada ao relatório.')){
+    return;
+  }
+
+  // Gerar resultados com todas as perguntas ativas como CONFORME
+  const sensosAtivos=SENSOS_CONFIG.filter(s=>s.ativo).map(s=>s.nome);
+  const pqAtivas=PQ.filter(p=>sensosAtivos.includes(p.s));
+
+  resultados=pqAtivas.map(pq=>({
+    pq_id:pq.id,
+    senso:pq.s,
+    pergunta:pq.t,
+    resultado:'CONFORME',
+    justificativa:'Auditoria concluída sem evidências fotográficas. Todos os itens avaliados como conformes pelo responsável do setor.',
+    sugestao:'',
+    foto:'',
+    duplicada:false,
+    _semFoto:true
+  }));
+
+  // Ir direto para salvar (pula tela de resultado)
+  const btn=document.createElement('button');
+  btn.disabled=true;
+  document.getElementById('btn-sem-foto').disabled=true;
+  document.getElementById('btn-sem-foto').textContent='⏳ Salvando...';
+
+  try{
+    const {pontos}=calcularResultadoFinal();
+    const ar=await fetch(`${SB_URL}/rest/v1/auditorias`,{
+      method:'POST',
+      headers:{apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'},
+      body:JSON.stringify({
+        setor_id:null,
+        auditor:usuario.nome,
+        mes_referencia:new Date().toISOString().slice(0,7),
+        setor_nome:setor,
+        pontuacao_total:100,
+        sensos_ativos:JSON.stringify(sensosAtivos)
+      })
+    });
+    const aud=await ar.json();
+    const audId=aud[0]?.id;
+
+    for(const r of resultados){
+      await fetch(`${SB_URL}/rest/v1/itens_auditoria`,{
+        method:'POST',
+        headers:{apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+        body:JSON.stringify({
+          auditoria_id:audId,
+          pq_id:r.pq_id,
+          senso:r.senso,
+          pergunta:r.pergunta,
+          resultado:'CONFORME',
+          justificativa:r.justificativa,
+          sugestao:'',
+          foto_url:'',
+          pontuacao:1
+        })
+      });
+    }
+
+    // Tela de sucesso
+    document.getElementById('pct-final').textContent='100.0%';
+    document.getElementById('pct-setor-label').textContent=setor;
+    document.getElementById('suc-total').textContent=pqAtivas.length+'/'+pqAtivas.length;
+    document.getElementById('suc-c').textContent=pqAtivas.length;
+    document.getElementById('suc-nc').textContent=0;
+    const elPts=document.getElementById('suc-pts');
+    if(elPts)elPts.textContent='100.0 pts';
+    irPara('tela-sucesso');
+    setHeader('Auditoria salva!','');
+  }catch(e){
+    alert('Erro ao salvar: '+e.message);
+  }finally{
+    const b=document.getElementById('btn-sem-foto');
+    if(b){b.disabled=false;b.textContent='✅ Concluir auditoria com pontuação máxima';}
+  }
 }
 
 function novaAuditoria(){fotos=[];resultados=[];setor='';navegar('home');}
