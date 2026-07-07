@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Auditoria 5S — Colibri Móveis</title>
+<!-- Build: 2026-07-07 11:31 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -1183,13 +1184,10 @@ function hashFoto(base64){
 
 async function concluirSemFotos(){
   if(fotos.length>0){
-    alert('Esta opção só está disponível quando não há fotos anexadas.');
+    alert('Esta opcao so esta disponivel quando nao ha fotos anexadas.');
     return;
   }
-  if(!confirm('Confirma conclusão da auditoria com pontuação máxima (100%)?
-
-Todos os itens serão considerados CONFORMES.
-Nenhuma foto será anexada ao relatório.')){
+  if(!confirm('Confirmar conclusao da auditoria com pontuacao maxima (100%)?\nTodos os itens serao CONFORMES. Nenhuma foto sera anexada.')){
     return;
   }
 
@@ -1202,7 +1200,7 @@ Nenhuma foto será anexada ao relatório.')){
     senso:pq.s,
     pergunta:pq.t,
     resultado:'CONFORME',
-    justificativa:'Auditoria concluída sem evidências fotográficas. Todos os itens avaliados como conformes pelo responsável do setor.',
+    justificativa:'Auditoria concluída sem evidências fotograficas. Todos os itens avaliados como conformes pelo responsavel do setor.',
     sugestao:'',
     foto:'',
     duplicada:false,
@@ -1264,7 +1262,7 @@ Nenhuma foto será anexada ao relatório.')){
     alert('Erro ao salvar: '+e.message);
   }finally{
     const b=document.getElementById('btn-sem-foto');
-    if(b){b.disabled=false;b.textContent='✅ Concluir auditoria com pontuação máxima';}
+    if(b){b.disabled=false;b.textContent='✅ Concluir auditoria com pontuacao maxima';}
   }
 }
 
