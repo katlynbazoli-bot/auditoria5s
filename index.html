@@ -858,20 +858,17 @@ async function analisarFoto(foto){
     if(json.resultado!=='CONFORME')json.resultado='NAO CONFORME';
     if(!json.sugestao)json.sugestao='';
 
-    // REGRA DE NEGÓCIO: se há evidência de resíduo/sujeira → P14 automaticamente NC
+    // REGRA DE NEGÓCIO: P14 NC automático SOMENTE se senso=Seiso e há evidência de sujeira
     // P14 = "Existe rotina de limpeza definida e cumprida?"
     const palavrasResiduo=[
-      'resíduo','residuo','sujeira','sujo','suja','lixo','pó','po ','poeira',
-      'acumulado','acumulada','acúmulo','acumulo','detrito','detritos',
-      'limpeza não','limpeza nao','sem limpeza','falta de limpeza',
-      'não limpo','nao limpo','não limpa','nao limpa','imundo','imunda',
-      'contaminado','contaminada','manchado','manchada','gordura','óleo derramado'
+      'residuo','sujeira','sujo','suja','lixo','poeira','acumulado','acumulada',
+      'acumulo','detrito','detritos','sem limpeza','falta de limpeza',
+      'nao limpo','nao limpa','imundo','imunda','manchado','manchada','gordura'
     ];
     const textoAnalise=(json.justificativa+' '+(json.pergunta||'')).toLowerCase();
     const temResiduo=palavrasResiduo.some(p=>textoAnalise.includes(p));
-    if(temResiduo&&json.pq_id!==14){
-      // Retorna o resultado principal normalmente
-      // A regra P14 será aplicada em analisarFoto via flag
+    const eSeiso=(json.senso||'').toLowerCase().includes('seiso');
+    if(temResiduo&&eSeiso&&parseInt(json.pq_id)!==14){
       json._flagP14NC=true;
     }
     return json;
@@ -1022,6 +1019,13 @@ function editarResultado(idx){
         </div>
       </div>
       <div style="margin-bottom:10px">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Pergunta vinculada</label>
+        <select id="edit-pq" style="width:100%;padding:8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:11px;background:#fff;color:#1e293b">
+          <option value="0">— Sem pergunta definida —</option>
+          ${PQ.map(p=>`<option value="${p.id}" ${parseInt(r.pq_id)===p.id?'selected':''}>[${p.s}] P${p.id} — ${p.t.slice(0,55)}${p.t.length>55?'...':''}</option>`).join('')}
+        </select>
+      </div>
+      <div style="margin-bottom:10px">
         <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Justificativa</label>
         <textarea id="edit-just" style="width:100%;padding:8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;resize:vertical;min-height:60px;font-family:inherit">${r.justificativa||''}</textarea>
       </div>
@@ -1055,7 +1059,22 @@ function salvarEdicao(idx){
   resultados[idx].resultado=window._editRes||resultados[idx].resultado;
   resultados[idx].justificativa=document.getElementById('edit-just').value;
   resultados[idx].sugestao=document.getElementById('edit-sug').value;
+
+  // Atualizar pq_id e senso se o usuário alterou a pergunta
+  const novoPqId=parseInt(document.getElementById('edit-pq')?.value||0);
+  if(novoPqId>0){
+    const pqEncontrada=PQ.find(p=>p.id===novoPqId);
+    if(pqEncontrada){
+      resultados[idx].pq_id=novoPqId;
+      resultados[idx].senso=pqEncontrada.s;
+      resultados[idx].pergunta=pqEncontrada.t;
+    }
+  } else {
+    resultados[idx].pq_id=0;
+  }
+
   document.querySelector('[style*="position:fixed"][style*="z-index:9999"]')?.remove();
+  // Recalcular pontuação e atualizar tudo
   atualizarContadores();
   renderizarResultados();
 }
@@ -1564,29 +1583,69 @@ function gerarPDF(pontosHistorico=null){
             doc.text('Sem foto',col+fW/2,ey+6+fH/2,{align:'center'});
           }
 
-          // Pergunta
-          const pqTxt=pq?pq.t:(r.pergunta||'Avaliação geral');
-          doc.setTextColor(30,41,59);doc.setFont('helvetica','bold');doc.setFontSize(5.8);
+          // Calcular altura dinâmica baseada no conteúdo
+          const pqTxt=pq?pq.t:(r.pergunta||'Avaliacao geral');
+          doc.setFontSize(5.8);
           const pqL=doc.splitTextToSize(pqTxt,fW-4);
-          doc.text(pqL.slice(0,2),col+2,ey+fH+9);
+          const pqLinhas=Math.min(pqL.length,3);
 
-          // Justificativa
-          if(r.justificativa){
-            doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(60,60,60);
-            const jL=doc.splitTextToSize(r.justificativa,fW-4);
-            doc.text(jL.slice(0,2),col+2,ey+fH+15);
+          doc.setFontSize(5.5);
+          const jTxt=r.justificativa||'';
+          const jL=doc.splitTextToSize(jTxt,fW-4);
+          const jLinhas=Math.min(jL.length,3);
+
+          const sTxt=(!isC&&r.sugestao)?r.sugestao:'';
+          const sL=sTxt?doc.splitTextToSize(sTxt,fW-6):[];
+          const sLinhas=Math.min(sL.length,2);
+
+          // Altura total do card: foto + textos + margens
+          const altTexto=pqLinhas*3.5+jLinhas*3.2+(sLinhas>0?sLinhas*3+5:0)+12;
+          const cardHDin=fH+altTexto;
+
+          // Verificar espaço antes de desenhar
+          if(colAtual===0&&ey+cardHDin>285){doc.addPage();ey=15;}
+
+          // Redesenhar card com altura correta
+          doc.setFillColor(...h2r(cBg));doc.rect(col,ey,fW,cardHDin,'F');
+          doc.setDrawColor(...h2r(cBd));doc.rect(col,ey,fW,cardHDin,'S');
+          doc.setFillColor(...h2r(cBd));doc.rect(col,ey,fW,5,'F');
+          doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(6);
+          doc.text(badge,col+fW/2,ey+3.5,{align:'center'});
+          if(temFoto){
+            try{doc.addImage(r.foto,'JPEG',col+1,ey+6,fW-2,fH,'','FAST');}
+            catch(e){
+              doc.setFillColor(240,240,240);doc.rect(col+1,ey+6,fW-2,fH,'F');
+              doc.setTextColor(150);doc.setFontSize(7);
+              doc.text('Foto nao disponivel',col+fW/2,ey+6+fH/2,{align:'center'});
+            }
+          }else{
+            doc.setFillColor(245,245,245);doc.rect(col+1,ey+6,fW-2,fH,'F');
+            doc.setTextColor(150);doc.setFontSize(7);doc.setFont('helvetica','normal');
+            doc.text('Sem foto',col+fW/2,ey+6+fH/2,{align:'center'});
           }
 
-          // Sugestão (só NC)
-          if(!isC&&r.sugestao){
-            doc.setFillColor(254,243,199);doc.rect(col+1,ey+fH+20,fW-2,7,'F');
+          // Pergunta
+          let ty=ey+fH+8;
+          doc.setTextColor(30,41,59);doc.setFont('helvetica','bold');doc.setFontSize(5.8);
+          doc.text(pqL.slice(0,pqLinhas),col+2,ty);
+          ty+=pqLinhas*3.5+1;
+
+          // Justificativa
+          if(jTxt){
+            doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(60,60,60);
+            doc.text(jL.slice(0,jLinhas),col+2,ty);
+            ty+=jLinhas*3.2+1;
+          }
+
+          // Sugestao (so NC)
+          if(sLinhas>0){
+            doc.setFillColor(254,243,199);doc.rect(col+1,ty-1,fW-2,sLinhas*3+4,'F');
             doc.setTextColor(146,64,14);doc.setFont('helvetica','italic');doc.setFontSize(5.2);
-            const sL=doc.splitTextToSize('💡 '+r.sugestao,fW-6);
-            doc.text(sL.slice(0,2),col+3,ey+fH+23.5);
+            doc.text(sL.slice(0,sLinhas),col+3,ty+2);
           }
 
           // Avançar coluna
-          if(colAtual===1){ey+=cardH+4;colAtual=0;}
+          if(colAtual===1){ey+=cardHDin+4;colAtual=0;}
           else{colAtual=1;}
         });
 
