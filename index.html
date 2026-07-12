@@ -1003,41 +1003,56 @@ function verFotoGrande(src){
 
 function editarResultado(idx){
   const r=resultados[idx];
-  // Criar modal de edição
   const modal=document.createElement('div');
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
-  modal.innerHTML=`
-    <div style="background:#fff;border-radius:16px;padding:20px;width:100%;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,.3)">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px">✏️ Editar avaliação</div>
-      <div style="font-size:11px;color:#64748b;margin-bottom:14px">Corrija o resultado e a justificativa manualmente</div>
-      <img src="${r.foto}" style="width:100%;height:140px;object-fit:cover;border-radius:8px;margin-bottom:12px">
-      <div style="margin-bottom:10px">
-        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px">Resultado</label>
-        <div style="display:flex;gap:8px">
-          <button id="btn-conf" onclick="selecionarRes('CONFORME')" style="flex:1;padding:10px;border-radius:8px;border:2px solid ${r.resultado==='CONFORME'?'#16a34a':'#e2e8f0'};background:${r.resultado==='CONFORME'?'#dcfce7':'#f8fafc'};color:${r.resultado==='CONFORME'?'#16a34a':'#64748b'};font-weight:600;font-size:13px;cursor:pointer">✅ CONFORME</button>
-          <button id="btn-nc" onclick="selecionarRes('NAO CONFORME')" style="flex:1;padding:10px;border-radius:8px;border:2px solid ${r.resultado!=='CONFORME'?'#dc2626':'#e2e8f0'};background:${r.resultado!=='CONFORME'?'#fee2e2':'#f8fafc'};color:${r.resultado!=='CONFORME'?'#dc2626':'#64748b'};font-weight:600;font-size:13px;cursor:pointer">❌ NÃO CONFORME</button>
-        </div>
-      </div>
-      <div style="margin-bottom:10px">
-        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Pergunta vinculada</label>
-        <select id="edit-pq" style="width:100%;padding:8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:11px;background:#fff;color:#1e293b">
-          <option value="0">— Sem pergunta definida —</option>
-          ${PQ.map(p=>`<option value="${p.id}" ${parseInt(r.pq_id)===p.id?'selected':''}>[${p.s}] P${p.id} — ${p.t.slice(0,55)}${p.t.length>55?'...':''}</option>`).join('')}
-        </select>
-      </div>
-      <div style="margin-bottom:10px">
-        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Justificativa</label>
-        <textarea id="edit-just" style="width:100%;padding:8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;resize:vertical;min-height:60px;font-family:inherit">${r.justificativa||''}</textarea>
-      </div>
-      <div style="margin-bottom:14px">
-        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Sugestão de melhoria</label>
-        <textarea id="edit-sug" style="width:100%;padding:8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;resize:vertical;min-height:60px;font-family:inherit">${r.sugestao||''}</textarea>
-      </div>
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto';
+
+  // Construir opções do select dinamicamente (não via template literal)
+  const opcoesSelect=['<option value="0">— Sem pergunta definida —</option>'];
+  PQ.forEach(p=>{
+    const sel=parseInt(r.pq_id)===p.id?'selected':'';
+    const txt=`[${p.s}] P${p.id} — ${p.t.slice(0,60)}${p.t.length>60?'...':''}`;
+    opcoesSelect.push(`<option value="${p.id}" ${sel}>${txt}</option>`);
+  });
+
+  const isC=r.resultado==='CONFORME';
+  const bordaC=isC?'#16a34a':'#e2e8f0';
+  const bgC=isC?'#dcfce7':'#f8fafc';
+  const corC=isC?'#16a34a':'#64748b';
+  const bordaNC=!isC?'#dc2626':'#e2e8f0';
+  const bgNC=!isC?'#fee2e2':'#f8fafc';
+  const corNC=!isC?'#dc2626':'#64748b';
+
+  modal.innerHTML=`<div style="background:#fff;border-radius:16px;padding:20px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.3)">
+    <div style="font-size:15px;font-weight:700;margin-bottom:4px">✏️ Editar avaliação</div>
+    <div style="font-size:11px;color:#64748b;margin-bottom:12px">Corrija o resultado, a pergunta e a justificativa</div>
+    ${r.foto?`<img src="${r.foto}" style="width:100%;height:130px;object-fit:cover;border-radius:8px;margin-bottom:12px">`:''}
+    <div style="margin-bottom:10px">
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px">Resultado</label>
       <div style="display:flex;gap:8px">
-        <button onclick="salvarEdicao(${idx})" style="flex:1;padding:11px;background:#1d4ed8;color:#fff;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer">💾 Salvar</button>
-        <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;padding:11px;background:#f1f5f9;color:#475569;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer">Cancelar</button>
+        <button id="btn-conf" onclick="selecionarRes('CONFORME')" style="flex:1;padding:10px;border-radius:8px;border:2px solid ${bordaC};background:${bgC};color:${corC};font-weight:600;font-size:13px;cursor:pointer">✅ CONFORME</button>
+        <button id="btn-nc" onclick="selecionarRes('NAO CONFORME')" style="flex:1;padding:10px;border-radius:8px;border:2px solid ${bordaNC};background:${bgNC};color:${corNC};font-weight:600;font-size:13px;cursor:pointer">❌ NÃO CONFORME</button>
       </div>
-    </div>`;
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Pergunta vinculada</label>
+      <select id="edit-pq" style="width:100%;padding:8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:11px;background:#fff;color:#1e293b;appearance:auto">
+        ${opcoesSelect.join('')}
+      </select>
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Justificativa</label>
+      <textarea id="edit-just" style="width:100%;padding:8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;resize:vertical;min-height:60px;font-family:inherit">${(r.justificativa||'').replace(/`/g,"'")}</textarea>
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Sugestão de melhoria</label>
+      <textarea id="edit-sug" style="width:100%;padding:8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;resize:vertical;min-height:60px;font-family:inherit">${(r.sugestao||'').replace(/`/g,"'")}</textarea>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="salvarEdicao(${idx})" style="flex:1;padding:11px;background:#1d4ed8;color:#fff;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer">💾 Salvar</button>
+      <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;padding:11px;background:#f1f5f9;color:#475569;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer">Cancelar</button>
+    </div>
+  </div>`;
+
   document.body.appendChild(modal);
   window._editRes=r.resultado;
 }
@@ -1559,29 +1574,8 @@ function gerarPDF(pontosHistorico=null){
           const cBg=isC?'#f0fdf4':'#fff5f5';
           const cBd=isC?'#16a34a':'#dc2626';
 
-          // Card
-          doc.setFillColor(...h2r(cBg));doc.rect(col,ey,fW,cardH,'F');
-          doc.setDrawColor(...h2r(cBd));doc.rect(col,ey,fW,cardH,'S');
-
-          // Badge topo
-          doc.setFillColor(...h2r(cBd));doc.rect(col,ey,fW,5,'F');
-          doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(6);
+          // Badge (montado antes para usar no redesenho)
           const badge=(isC?'✓ CONFORME':'✗ NÃO CONFORME')+' — P'+(r.pq_id||'?')+' — '+senso.chave;
-          doc.text(badge,col+fW/2,ey+3.5,{align:'center'});
-
-          // Foto
-          if(temFoto){
-            try{doc.addImage(r.foto,'JPEG',col+1,ey+6,fW-2,fH,'','FAST');}
-            catch(e){
-              doc.setFillColor(240,240,240);doc.rect(col+1,ey+6,fW-2,fH,'F');
-              doc.setTextColor(150);doc.setFontSize(7);
-              doc.text('Foto não disponível',col+fW/2,ey+6+fH/2,{align:'center'});
-            }
-          }else{
-            doc.setFillColor(245,245,245);doc.rect(col+1,ey+6,fW-2,fH,'F');
-            doc.setTextColor(150);doc.setFontSize(7);doc.setFont('helvetica','normal');
-            doc.text('Sem foto',col+fW/2,ey+6+fH/2,{align:'center'});
-          }
 
           // Calcular altura dinâmica baseada no conteúdo
           const pqTxt=pq?pq.t:(r.pergunta||'Avaliacao geral');
