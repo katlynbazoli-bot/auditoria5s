@@ -1083,13 +1083,34 @@ function salvarEdicao(idx){
       resultados[idx].pq_id=novoPqId;
       resultados[idx].senso=pqEncontrada.s;
       resultados[idx].pergunta=pqEncontrada.t;
+
+      // REGRA P14: se editou para Seiso + NAO CONFORME → disparar P14 automaticamente
+      const eSeiso=pqEncontrada.s==='Seiso';
+      const eNC=resultados[idx].resultado==='NAO CONFORME';
+      const p14Id=14;
+      if(eSeiso&&eNC&&novoPqId!==p14Id){
+        const p14Existente=resultados.find((r,i)=>i!==idx&&parseInt(r.pq_id)===p14Id&&r.resultado==='NAO CONFORME');
+        if(!p14Existente){
+          const pq14=PQ.find(p=>p.id===p14Id);
+          resultados.push({
+            pq_id:p14Id,
+            senso:'Seiso',
+            pergunta:pq14?pq14.t:'Existe rotina de limpeza definida e cumprida?',
+            resultado:'NAO CONFORME',
+            justificativa:'Regra automatica: item do Seiso marcado como Nao Conforme indica que a rotina de limpeza nao esta sendo cumprida efetivamente.',
+            sugestao:'Estabelecer cronograma de limpeza com responsavel definido e checklist de verificacao diaria.',
+            foto:resultados[idx].foto||'',
+            duplicada:false,
+            _regraAutomatica:true
+          });
+        }
+      }
     }
   } else {
     resultados[idx].pq_id=0;
   }
 
   document.querySelector('[style*="position:fixed"][style*="z-index:9999"]')?.remove();
-  // Recalcular pontuação e atualizar tudo
   atualizarContadores();
   renderizarResultados();
 }
