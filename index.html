@@ -1836,7 +1836,7 @@ async function carregarHistorico(){
           <button onclick="verDetalhesHistorico('${a.id}')" style="flex:1;padding:8px;background:var(--azul-claro);color:var(--azul);border:1px solid var(--azul);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">
             🔍 Ver detalhes
           </button>
-          <button onclick="baixarPDFHistorico('${a.id}','${setor}','${auditor}')" style="flex:1;padding:8px;background:var(--verde);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">
+          <button onclick="baixarPDFHistorico('${a.id}','${setor}','${auditor}',this)" style="flex:1;padding:8px;background:var(--verde);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">
             📄 Baixar PDF
           </button>
         </div>
@@ -1896,9 +1896,9 @@ async function verDetalhesHistorico(audId){
   }catch(e){modal.remove();alert('Erro: '+e.message);}
 }
 
-async function baixarPDFHistorico(audId,setorNome,auditorNome){
-  const btn=event.target;
-  btn.textContent='⏳ Gerando...';btn.disabled=true;
+async function baixarPDFHistorico(audId,setorNome,auditorNome,btnEl){
+  const btn=btnEl||event?.target;
+  if(btn){btn.textContent='⏳ Gerando...';btn.disabled=true;}
   try{
     // Buscar auditoria + itens em paralelo
     const [rAud,rItems]=await Promise.all([
